@@ -37,6 +37,20 @@ export async function getWatchHistory(userId: string) {
     .toArray();
 }
 
+export async function getRecentlyWatchedMovies(
+  userId: ObjectId,
+  excludeDays: number
+) {
+  const since = new Date(Date.now() - excludeDays * 24 * 60 * 60 * 1000);
+
+  const rows = await collection()
+    .find({ userId, watchedAt: { $gte: since } })
+    .project({ movieId: 1 })
+    .toArray();
+
+  return rows.map((row) => row.movieId);
+}
+
 export async function updateWatchHistory(
   userId: string,
   id: string,

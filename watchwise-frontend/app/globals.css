@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* WatchWise Theme - Opal inspired dark theme with mint/cyan accents */
+:root {
+  /* Dark theme by default for evening viewing */
+  --background: oklch(0.08 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.12 0.005 200);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  /* Mint/cyan primary color */
+  --primary: oklch(0.85 0.15 175);
+  --primary-foreground: oklch(0.1 0 0);
+  --secondary: oklch(0.18 0.01 200);
+  --secondary-foreground: oklch(0.9 0 0);
+  --muted: oklch(0.2 0.01 200);
+  --muted-foreground: oklch(0.6 0 0);
+  /* Yellow-green accent for CTAs */
+  --accent: oklch(0.88 0.18 130);
+  --accent-foreground: oklch(0.1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.25 0.01 200);
+  --input: oklch(0.18 0.01 200);
+  --ring: oklch(0.85 0.15 175);
+  /* Discovery badge - sparkle gold */
+  --discovery: oklch(0.85 0.18 85);
+  --discovery-foreground: oklch(0.1 0 0);
+  /* Glow effect colors */
+  --glow: oklch(0.7 0.15 175 / 0.4);
+  --glow-accent: oklch(0.8 0.18 130 / 0.3);
+  --radius: 1rem;
+  --sidebar: oklch(0.1 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.85 0.15 175);
+  --sidebar-primary-foreground: oklch(0.1 0 0);
+  --sidebar-accent: oklch(0.18 0.01 200);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.25 0.01 200);
+  --sidebar-ring: oklch(0.85 0.15 175);
+}
+
+@theme inline {
+  --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-discovery: var(--discovery);
+  --color-discovery-foreground: var(--discovery-foreground);
+  --color-glow: var(--glow);
+  --color-glow-accent: var(--glow-accent);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom glow effects */
+.glow-primary {
+  box-shadow: 0 0 60px var(--glow), 0 0 120px var(--glow);
+}
+
+.glow-accent {
+  box-shadow: 0 0 40px var(--glow-accent);
+}
+
+.poster-glow {
+  filter: drop-shadow(0 0 30px var(--glow));
+}
+
+/* Apple Liquid Glass effect styles */
+.liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0
+    rgba(255, 255, 255, 0.05);
+}
+
+.liquid-glass-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.liquid-glass-active {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 233, 210, 0.25) 0%,
+    rgba(139, 233, 210, 0.1) 50%,
+    rgba(139, 233, 210, 0.2) 100%
+  );
+  border: 1px solid rgba(139, 233, 210, 0.3);
+  box-shadow: 0 4px 20px rgba(139, 233, 210, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Questionnaire card glass effect */
+.questionnaire-glass {
+  background: linear-gradient(180deg, rgba(30, 35, 40, 0.95) 0%, rgba(20, 25, 30, 0.98) 100%);
+  backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(139, 233, 210, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}

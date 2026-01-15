@@ -17,5 +17,5 @@ export async function buildCandidatePool(
   const watchedSet = new Set(watched);
 
   // HARD FILTER: rimuovi già visti
-  return candidates.filter(c => !watchedSet.has(c.movieId));
+  return candidates.filter((c: MovieCandidate) => !watchedSet.has(c.movieId));
 }

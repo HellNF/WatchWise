@@ -19,10 +19,22 @@ export interface MovieCandidate {
 /* ========== DETAILS ========== */
 export interface MovieDetails {
   movieId: string;
+  title: string;
+  year?: number;
+  rating?: number;
+  posterPath?: string;
+  overview?: string;
   duration?: number;
   genres?: string[];
   director?: string;
+  directorId?: number;
+  directorImage?: string;
   actors?: string[];
+  actorsDetailed?: {
+    id: number;
+    name: string;
+    image?: string;
+  }[];
 }
 
 /* ========== STREAMING ========== */
@@ -56,21 +68,47 @@ export function mapTMDBMovieToCandidate(movie: TMDBMovie): MovieCandidate {
 export function mapTMDBDetailsToMovieDetails(
   movie: TMDBMovieDetails
 ): MovieDetails {
-  const director = movie.credits.crew.find(
+  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+  const directorMember = movie.credits.crew.find(
     (m) => m.job === "Director"
-  )?.name;
+  );
+  const director = directorMember?.name;
+  const directorId = directorMember?.id;
+  const directorImage = directorMember?.profile_path
+    ? `${TMDB_IMAGE_BASE}${directorMember.profile_path}`
+    : undefined;
 
-  const actors = movie.credits.cast
+  const cast = movie.credits.cast
     .sort((a, b) => a.order - b.order)
     .slice(0, 5)
-    .map((a) => a.name);
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      image: a.profile_path
+        ? `${TMDB_IMAGE_BASE}${a.profile_path}`
+        : undefined,
+    }));
+
+  const actors = cast.map((a) => a.name);
 
   return {
     movieId: `tmdb:${movie.id}`,
+    title: movie.title,
+    year: movie.release_date
+      ? Number(movie.release_date.split("-")[0])
+      : undefined,
+    rating: movie.vote_average,
+    posterPath: movie.poster_path
+      ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
+      : undefined,
+    overview: movie.overview,
     duration: movie.runtime,
     genres: movie.genres?.map((g) => g.name),
     director,
+    directorId,
+    directorImage,
     actors,
+    actorsDetailed: cast,
   };
 }
 

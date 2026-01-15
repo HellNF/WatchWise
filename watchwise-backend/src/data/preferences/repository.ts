@@ -31,6 +31,17 @@ export async function getUserPreferences(userId: string) {
     .toArray();
 }
 
+export async function getUserPreferenceEvents(
+  userId: ObjectId,
+  limit = 300
+) {
+  return collection()
+    .find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
+}
+
 export async function deletePreferenceEvent(
   userId: string,
   eventId: string
