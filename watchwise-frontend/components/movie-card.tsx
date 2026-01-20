@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles } from "lucide-react"
+import { Calendar, Sparkles, Star } from "lucide-react"
+import type { ReactNode } from "react"
 
 interface MovieCardProps {
   id: string
@@ -13,6 +14,8 @@ interface MovieCardProps {
   isDiscovery?: boolean
   reason?: string
   className?: string
+  meta?: ReactNode
+  children?: ReactNode
 }
 
 export function MovieCard({
@@ -24,6 +27,8 @@ export function MovieCard({
   isDiscovery,
   reason,
   className,
+  meta,
+  children,
 }: MovieCardProps) {
   const normalizedId = id.includes(":") ? id.split(":").pop() ?? id : id
   const href = `/movie/${encodeURIComponent(normalizedId)}`
@@ -49,11 +54,27 @@ export function MovieCard({
       </Link>
 
       <div className="mt-2">
-        <h3 className="font-medium text-sm truncate">{title}</h3>
-        <p className="text-xs text-muted-foreground">
-          {year ?? ""}
-          {typeof rating === "number" ? ` · ${rating.toFixed(1)}` : ""}
-        </p>
+        <h3 className="flex items-center justify-betweenfont-medium text-sm truncate">{title}</h3>
+        <div className="flex mt-1">
+          <div className="flex ">
+            <Calendar className="inline-block h-3.5 w-3.5 mr-1 mb-0.5 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              {year ?? ""}
+            </p>
+          </div>
+          
+          <div className="flex ml-3" >
+            <Star className="inline-block h-3.5 w-3.5 mr-1 mb-0.5 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              {typeof rating === "number" ? ` · ${rating.toFixed(1)}` : ""}
+            </p>
+          </div>
+          <div className="ml-3">
+            {children}
+          </div>
+
+        </div>
+        {meta ? <div className="mt-2">{meta}</div> : null}
       </div>
 
       {reason && (
@@ -61,6 +82,7 @@ export function MovieCard({
           <p className="text-xs text-muted-foreground leading-relaxed">{reason}</p>
         </div>
       )}
+      
     </div>
   )
 }

@@ -8,7 +8,7 @@ export interface WatchHistoryEntry {
 
   watchedAt: Date;
 
-  rating?: number; // 1..5
+  rating?: number; // 1..10
   completed: boolean;
 }
 export type NewWatchHistoryEntry = Omit<WatchHistoryEntry, "_id"| "userId"> & {

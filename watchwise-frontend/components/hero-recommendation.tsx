@@ -4,8 +4,36 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Sparkles, ThumbsUp, ThumbsDown, Check, ChevronDown, Clock, Star, Calendar, Play, Eye } from "lucide-react"
+import {
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Check,
+  ChevronDown,
+  Clock,
+  Star,
+  Calendar,
+  Play,
+  Eye,
+  Plus,
+  CircleCheckBig,
+} from "lucide-react"
 import { extractColorsFromImage, type ExtractedColors } from "@/lib/color-extractor"
+import {
+  addListItem,
+  getLists,
+  postWatchHistory,
+  type UserList,
+} from "@/lib/api"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 
 export interface HeroMovie {
   id: string
@@ -121,11 +149,16 @@ function LeftPanel({
           <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} />
         </button>
         {description && (
-          <div
-            className={`overflow-hidden transition-all duration-300 ${expanded ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}
-          >
-            <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-          </div>
+            <div
+            className={`overflow-y-scroll transition-all duration-300 ${expanded ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: `color-mix(in oklch, ${primaryColor} 30%, transparent) transparent`,
+              WebkitOverflowScrolling: "touch",
+            }}
+            >
+            <p className="text-sm text-muted-foreground leading-relaxed pr-2">{description}</p>
+            </div>
         )}
       </div>
 
@@ -247,6 +280,7 @@ function RightPanel({
 
 function BottomSection({
   title,
+  movieId,
   reasons,
   isDiscovery,
   genres,
@@ -257,6 +291,7 @@ function BottomSection({
   colors,
 }: {
   title: string
+  movieId: string
   reasons: string[]
   isDiscovery: boolean
   genres: string[]
@@ -267,19 +302,74 @@ function BottomSection({
   colors: ExtractedColors | null
 }) {
   const [reasonsExpanded, setReasonsExpanded] = useState(false)
+  const [lists, setLists] = useState<UserList[]>([])
+  const [listLoading, setListLoading] = useState(false)
+  const [listError, setListError] = useState<string | null>(null)
+  const [savingList, setSavingList] = useState<string | null>(null)
+  const [savingHistory, setSavingHistory] = useState(false)
   const primaryColor = colors?.primary || "var(--primary)"
   const accentColor = colors?.accent || "var(--accent)"
+
+  const ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+  useEffect(() => {
+    const loadLists = async () => {
+      setListLoading(true)
+      setListError(null)
+      try {
+        const data = await getLists()
+        setLists(data)
+      } catch {
+        setListError("Unable to load lists.")
+      } finally {
+        setListLoading(false)
+      }
+    }
+
+    if (movieId) loadLists()
+  }, [movieId])
+
+  const handleAlreadySeen = async (value: number) => {
+    if (!movieId) return
+    setSavingHistory(true)
+    try {
+      await postWatchHistory({ movieId, rating: value })
+      toast.success("Aggiunto alla watch history")
+    } finally {
+      setSavingHistory(false)
+    }
+  }
+
+  const handleAddToList = async (listId?: string) => {
+    if (!movieId || !listId) {
+      setListError("Invalid list. Please try again.")
+      return
+    }
+    setSavingList(listId)
+    try {
+      await addListItem(listId, movieId)
+      const listName = lists.find((list) => list.id === listId)?.name
+      toast.success(
+        listName
+          ? `Aggiunto a ${listName}`
+          : "Film aggiunto alla lista"
+      )
+    } finally {
+      setSavingList(null)
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-6 mt-8 lg:mt-10">
       <div className="text-center">
-        <div className="flex items-center justify-center gap-3">
+        <div className=" flex items-center justify-center gap-3">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-semibold transition-colors duration-500"
             style={{ color: primaryColor }}
           >
             {title}
           </h2>
+          
           {isDiscovery && (
             <Badge className="bg-discovery text-discovery-foreground gap-1">
               <Sparkles className="h-3 w-3" />
@@ -322,30 +412,76 @@ function BottomSection({
           <span className="sr-only">Not interested</span>
         </Button>
 
-        <Button
-          variant="outline"
-          className="h-12 px-5 rounded-full  hover:scale-110 border-border/40 bg-transparent gap-2  transition-all duration-300"
-          style={{
-            borderColor: `color-mix(in oklch, ${primaryColor} 30%, transparent)`,
-            color: primaryColor,
-            backgroundColor: `color-mix(in oklch, ${primaryColor} 10%, transparent)`,
-          }}
-        >
-          <Eye className="h-4 w-4" />
-          Already seen
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="h-12 px-5 rounded-full hover:scale-110 border-border/40 bg-transparent gap-2 transition-all duration-300"
+              style={{
+                borderColor: `color-mix(in oklch, ${primaryColor} 30%, transparent)`,
+                color: primaryColor,
+                backgroundColor: `color-mix(in oklch, ${primaryColor} 10%, transparent)`,
+              }}
+              disabled={savingHistory}
+            >
+              <CircleCheckBig className="h-4 w-4" />
+              {savingHistory ? "Saving..." : "Already seen"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-44">
+            <DropdownMenuLabel>Rate this movie</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {ratingOptions.map((value) => (
+              <DropdownMenuItem
+                key={`hero-rating-${value}`}
+                onClick={() => handleAlreadySeen(value)}
+              >
+                <span className="flex items-center gap-2">
+                  <Star className="h-4 w-4 fill-primary text-primary" />
+                  {value} / 10
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <Button
-          className="h-14 px-8 rounded-full text-white font-medium text-base transition-all duration-500 hover:scale-105 active:scale-95 "
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-            boxShadow: `0 0 15px -5px ${primaryColor}, 0 0 30px -10px ${accentColor}`,
-            border: `1px solid color-mix(in oklch, ${primaryColor} 70%, white)`,
-          }}
-        >
-          <Check className="h-5 w-5 m-1" />
-          I&apos;ll watch this
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              className="h-12 w-12 rounded-full transition-all duration-500 hover:scale-105 active:scale-95"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                boxShadow: `0 0 15px -5px ${primaryColor}, 0 0 30px -10px ${accentColor}`,
+                border: `1px solid color-mix(in oklch, ${primaryColor} 70%, white)`,
+              }}
+              aria-label="Add to list"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-60">
+            <DropdownMenuLabel>Choose a list</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {listLoading ? (
+              <DropdownMenuItem disabled>Loading lists...</DropdownMenuItem>
+            ) : listError ? (
+              <DropdownMenuItem disabled>{listError}</DropdownMenuItem>
+            ) : lists.length ? (
+              lists.map((list, index) => (
+                <DropdownMenuItem
+                  key={`${list.id ?? list.slug ?? list.name ?? "list"}-${index}`}
+                  onClick={() => handleAddToList(list.id)}
+                  disabled={!list.id || savingList === list.id}
+                >
+                  {list.name}
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <DropdownMenuItem disabled>No lists available</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button
           variant="outline"
@@ -452,14 +588,15 @@ export function HeroRecommendation({ movie }: { movie?: HeroMovie | null }) {
 
           {/* Center - Movie poster */}
           <div className="relative flex flex-col items-center">
+            
             <div
               className="absolute top-8 w-64 h-96 blur-3xl rounded-full opacity-30 transition-colors duration-700"
               style={{ backgroundColor: colors?.primary || "var(--primary)" }}
             />
-
+            
             {/* Movie poster */}
             <div
-              className="relative z-10 w-56 md:w-64 lg:w-72 xl:w-85 2xl:w-96 aspect-[2/3] rounded-2xl overflow-hidden transition-shadow duration-500"
+              className="relative z-10 w-56 md:w-64 lg:w-72 xl:w-85 2xl:w-96 aspect-2/3 rounded-2xl overflow-hidden transition-shadow duration-500"
               style={{
                 boxShadow: colors
                   ? `0 0 60px color-mix(in oklch, ${colors.primary} 40%, transparent), 0 0 120px color-mix(in oklch, ${colors.primary} 20%, transparent)`
@@ -479,9 +616,10 @@ export function HeroRecommendation({ movie }: { movie?: HeroMovie | null }) {
           {/* Right panel - cast & director */}
           <RightPanel director={director} cast={cast} colors={colors} />
         </div>
-
+              
         <BottomSection
           title={activeMovie.title}
+          movieId={activeMovie.id}
           reasons={reasons}
           isDiscovery={activeMovie.isDiscovery ?? false}
           genres={genres}

@@ -24,11 +24,12 @@ import { getCached, setCached } from "./cache";
 
 export async function fetchTrendingMovies(
   region?: string,
-  limit = 50
+  limit = 50,
+  page = 1
 ): Promise<MovieCandidate[]> {
   const data = await tmdbFetch<TMDBMovieListResponse>(
     "/trending/movie/week",
-    { region }
+    { region, page }
   );
 
   return data.results.slice(0, limit).map(mapTMDBMovieToCandidate);
@@ -36,11 +37,48 @@ export async function fetchTrendingMovies(
 
 export async function fetchPopularMovies(
   region?: string,
-  limit = 50
+  limit = 50,
+  page = 1
 ): Promise<MovieCandidate[]> {
   const data = await tmdbFetch<TMDBMovieListResponse>(
     "/movie/popular",
-    { region }
+    { region, page }
+  );
+  return data.results.slice(0, limit).map(mapTMDBMovieToCandidate);
+}
+
+export async function fetchNowPlayingMovies(
+  region?: string,
+  limit = 50,
+  page = 1
+): Promise<MovieCandidate[]> {
+  const data = await tmdbFetch<TMDBMovieListResponse>(
+    "/movie/now_playing",
+    { region, page }
+  );
+  return data.results.slice(0, limit).map(mapTMDBMovieToCandidate);
+}
+
+export async function fetchTopRatedMovies(
+  region?: string,
+  limit = 50,
+  page = 1
+): Promise<MovieCandidate[]> {
+  const data = await tmdbFetch<TMDBMovieListResponse>(
+    "/movie/top_rated",
+    { region, page }
+  );
+  return data.results.slice(0, limit).map(mapTMDBMovieToCandidate);
+}
+
+export async function fetchUpcomingMovies(
+  region?: string,
+  limit = 50,
+  page = 1
+): Promise<MovieCandidate[]> {
+  const data = await tmdbFetch<TMDBMovieListResponse>(
+    "/movie/upcoming",
+    { region, page }
   );
   return data.results.slice(0, limit).map(mapTMDBMovieToCandidate);
 }

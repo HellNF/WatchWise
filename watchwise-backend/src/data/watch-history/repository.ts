@@ -37,6 +37,17 @@ export async function getWatchHistory(userId: string) {
     .toArray();
 }
 
+export async function getWatchHistoryEntries(
+  userId: string,
+  limit = 200
+) {
+  return collection()
+    .find({ userId: toObjectId(userId) })
+    .sort({ watchedAt: -1 })
+    .limit(limit)
+    .toArray();
+}
+
 export async function getRecentlyWatchedMovies(
   userId: ObjectId,
   excludeDays: number

@@ -1,96 +1,173 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
-import { Check, Star, Calendar } from "lucide-react"
+import { MovieCard } from "@/components/movie-card"
+import { Check, Calendar, ClipboardCheck } from "lucide-react"
+import {
+  getWatchHistory,
+  getMovieDetails,
+  type WatchHistoryEntry,
+  type MovieDetails
+} from "@/lib/api"
 
-// Mock data for seen movies
-const seenMovies = [
-  {
-    id: 1,
-    title: "Inception",
-    year: 2010,
-    poster: "/interstellar-movie-poster-space-wormhole.jpg",
-    rating: 9,
-    watchedDate: "Yesterday",
-    myRating: 5
-  },
-  {
-    id: 2,
-    title: "Dune: Part Two",
-    year: 2024,
-    poster: "/dune-part-two-poster.jpg", // Placeholder
-    rating: 8.8,
-    watchedDate: "2 days ago",
-    myRating: 4
-  },
-  {
-    id: 3,
-    title: "Everything Everywhere All At Once",
-    year: 2022,
-    poster: "/eeao-poster.jpg", // Placeholder
-    rating: 8.9,
-    watchedDate: "Last Week",
-    myRating: 5
-  },
-  {
-    id: 4,
-    title: "Past Lives",
-    year: 2023,
-    poster: "/past-lives-poster.jpg", // Placeholder
-    rating: 8.0,
-    watchedDate: "2 weeks ago",
-    myRating: 4
+type SeenMovieCard = {
+  id: string
+  title: string
+  year?: number
+  poster?: string
+  watchedAt?: string
+  myRating?: number
+}
+
+const POSTER_BASE = "https://image.tmdb.org/t/p/w500"
+
+function toPosterUrl(posterPath?: string) {
+  if (!posterPath) return "/placeholder.svg"
+  if (posterPath.startsWith("http")) return posterPath
+  return `${POSTER_BASE}${posterPath}`
+}
+
+function toTenStar(rating?: number) {
+  if (rating === undefined || rating === null) return 0
+  const normalized = Math.round(rating)
+  return Math.max(0, Math.min(10, normalized))
+}
+
+function formatRelativeDate(isoDate?: string) {
+  if (!isoDate) return "Recently"
+  const date = new Date(isoDate)
+  if (Number.isNaN(date.getTime())) return "Recently"
+
+  const diffDays = Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+
+  if (Math.abs(diffDays) < 30) return rtf.format(diffDays, "day")
+  const diffMonths = Math.round(diffDays / 30)
+  if (Math.abs(diffMonths) < 12) return rtf.format(diffMonths, "month")
+  const diffYears = Math.round(diffMonths / 12)
+  return rtf.format(diffYears, "year")
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = []
+  let index = 0
+
+  async function worker() {
+    while (index < items.length) {
+      const i = index++
+      results[i] = await mapper(items[i])
+    }
   }
-]
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  await Promise.all(workers)
+  return results
+}
 
 export default function SeenMoviesPage() {
+  const [items, setItems] = useState<SeenMovieCard[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const history = await getWatchHistory()
+
+        // Dedup movieIds and keep first entry for watchedAt/rating
+        const byMovie = new Map<string, WatchHistoryEntry>()
+        for (const h of history) {
+          if (!byMovie.has(h.movieId)) byMovie.set(h.movieId, h)
+        }
+
+        const movieIds = Array.from(byMovie.keys())
+        const cache = new Map<string, MovieDetails>()
+
+        const detailsList = await mapWithConcurrency(movieIds, 6, async (movieId) => {
+          if (cache.has(movieId)) return cache.get(movieId)!
+          const details = await getMovieDetails(movieId)
+          cache.set(movieId, details)
+          return details
+        })
+
+        const result: SeenMovieCard[] = movieIds.map((movieId, idx) => {
+          const entry = byMovie.get(movieId)
+          const details = detailsList[idx]
+
+          return {
+            id: movieId,
+            title: details?.title ?? movieId,
+            year: details?.year,
+            poster: toPosterUrl(details?.posterPath),
+            watchedAt: entry?.watchedAt,
+            myRating: toTenStar(entry?.rating)
+          }
+        })
+
+        if (active) setItems(result)
+      } catch {
+        if (active) setError("Failed to load watch history.")
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const content = useMemo(() => {
+    if (loading) return <div className="text-muted-foreground">Loading...</div>
+    if (error) return <div className="text-destructive">{error}</div>
+    if (!items.length) return <div className="text-muted-foreground">No watched movies yet.</div>
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {items.map((movie) => (
+          <div key={movie.id} className="flex flex-col gap-12">
+            <MovieCard
+              id={movie.id}
+              title={movie.title}
+              poster={movie.poster}
+              year={movie.year}
+              rating={movie.myRating}
+              className=""
+              children={<div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <ClipboardCheck className="w-4 h-4" />
+                          <span>{formatRelativeDate(movie.watchedAt)}</span>
+                        </div>}
+            />
+            
+          </div>
+        ))}
+      </div>
+    )
+  }, [loading, error, items])
+
   return (
     <main className="min-h-screen pb-28">
       <Header />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mx-1 max-w-11/12">
         <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-primary/10 rounded-full">
-                <Check className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Movies You've Seen</h1>
+          <div className="p-2 bg-primary/10 rounded-full">
+            <Check className="w-6 h-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold">Movies You've Seen</h1>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {seenMovies.map((movie) => (
-            <div key={movie.id} className="flex gap-4 p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors">
-              <div className="w-20 h-28 bg-muted rounded-lg shrink-0 overflow-hidden relative">
-                 {/* Simulate Image if available, otherwise gray placeholder */}
-                 <div className="absolute inset-0 bg-zinc-800 flex items-center justify-center text-muted-foreground text-xs text-center p-1">
-                    {movie.poster.includes("placeholder") ? movie.title : <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />}
-                 </div>
-              </div>
-              
-              <div className="flex flex-col justify-between py-1 flex-1">
-                <div>
-                  <h3 className="font-semibold line-clamp-1">{movie.title}</h3>
-                  <p className="text-sm text-muted-foreground">{movie.year}</p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        <span>Watched {movie.watchedDate}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                       {[...Array(5)].map((_, i) => (
-                           <Star 
-                            key={i} 
-                            className={`w-3 h-3 ${i < movie.myRating ? "fill-primary text-primary" : "text-muted-foreground/30"}`} 
-                           />
-                       ))}
-                    </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {content}
       </div>
       <BottomNav />
     </main>

@@ -1,13 +1,33 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MovieCard } from "@/components/movie-card"
+import { extractColorsFromImage, type ExtractedColors } from "@/lib/color-extractor"
+import {
+  addListItem,
+  getLists,
+  getMovieDetails,
+  getMovieImages,
+  getMovieStreaming,
+  getMovieVideos,
+  getMovieWatchProviders,
+  getRecommendedMovies,
+  getSimilarMovies,
+  postWatchHistory,
+  type MovieDetails,
+  type MovieImages,
+  type MovieListItem,
+  type MovieVideos,
+  type StreamingAvailability,
+  type UserList,
+  type WatchProviders,
+} from "@/lib/api"
 import {
   Carousel,
   CarouselContent,
@@ -15,128 +35,73 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
-import { ChevronLeft, Star, Clock, Play } from "lucide-react"
-
-interface MovieDetailsResponse {
-  movieId: string
-  title: string
-  year?: number
-  rating?: number
-  posterPath?: string
-  overview?: string
-  duration?: number
-  genres?: string[]
-  director?: string
-  directorId?: number
-  directorImage?: string
-  actorsDetailed?: { id: number; name: string; image?: string }[]
-}
-
-interface StreamingAvailability {
-  region: string
-  platforms: { platform: string; type: "subscription" | "rent" | "buy" }[]
-}
-
-interface MovieImagesResponse {
-  backdrops: { file_path: string; width: number; height: number }[]
-  posters: { file_path: string; width: number; height: number }[]
-  logos: { file_path: string; width: number; height: number }[]
-}
-
-interface MovieVideosResponse {
-  results: {
-    id: string
-    key: string
-    name: string
-    site: string
-    type: string
-  }[]
-}
-
-interface WatchProvidersResponse {
-  results: {
-    [region: string]: {
-      flatrate?: { provider_name: string; logo_path?: string }[]
-      rent?: { provider_name: string; logo_path?: string }[]
-      buy?: { provider_name: string; logo_path?: string }[]
-    }
-  }
-}
-
-interface MovieCandidateResponse {
-  movieId: string
-  title: string
-  year?: number
-  voteAverage: number
-  posterPath?: string
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
+import { ChevronLeft, Clock, Plus, CircleCheckBig, Star } from "lucide-react"
 
 export default function MovieDetailsPage() {
   const params = useParams()
   const movieId = String(params.id ?? "")
+  const router = useRouter()
 
-  const [details, setDetails] = useState<MovieDetailsResponse | null>(null)
+  const [details, setDetails] = useState<MovieDetails | null>(null)
   const [streaming, setStreaming] = useState<StreamingAvailability | null>(null)
-  const [images, setImages] = useState<MovieImagesResponse | null>(null)
-  const [videos, setVideos] = useState<MovieVideosResponse | null>(null)
-  const [providers, setProviders] = useState<WatchProvidersResponse | null>(null)
-  const [similar, setSimilar] = useState<MovieCandidateResponse[]>([])
-  const [recommended, setRecommended] = useState<MovieCandidateResponse[]>([])
+  const [images, setImages] = useState<MovieImages | null>(null)
+  const [videos, setVideos] = useState<MovieVideos | null>(null)
+  const [providers, setProviders] = useState<WatchProviders | null>(null)
+  const [similar, setSimilar] = useState<MovieListItem[]>([])
+  const [recommended, setRecommended] = useState<MovieListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const apiBase = useMemo(
-    () => process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001",
-    []
-  )
-  const apiRoot = useMemo(
-    () => (apiBase.endsWith("/api") ? apiBase : `${apiBase}/api`),
-    [apiBase]
-  )
+  const [colors, setColors] = useState<ExtractedColors | null>(null)
+  const [lists, setLists] = useState<UserList[]>([])
+  const [listLoading, setListLoading] = useState(false)
+  const [listError, setListError] = useState<string | null>(null)
+  const [savingList, setSavingList] = useState<string | null>(null)
+  const [savingHistory, setSavingHistory] = useState(false)
 
   useEffect(() => {
     const fetchDetails = async () => {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`${apiRoot}/movies/${movieId}`)
-        if (!response.ok) throw new Error("Failed to fetch details")
-        const data = (await response.json()) as MovieDetailsResponse
+        const data = await getMovieDetails(movieId)
         setDetails(data)
 
-        const [streamingResponse, imagesResponse, videosResponse, providersResponse, similarResponse, recommendedResponse] =
-          await Promise.all([
-            fetch(`${apiRoot}/movies/${movieId}/streaming?region=IT`),
-            fetch(`${apiRoot}/movies/${movieId}/images`),
-            fetch(`${apiRoot}/movies/${movieId}/videos?language=it-IT`),
-            fetch(`${apiRoot}/movies/${movieId}/watch-providers`),
-            fetch(`${apiRoot}/movies/${movieId}/similar?limit=12`),
-            fetch(`${apiRoot}/movies/${movieId}/recommendations?limit=12`),
+        const [streamingResult, imagesResult, videosResult, providersResult, similarResult, recommendedResult] =
+          await Promise.allSettled([
+            getMovieStreaming(movieId, "IT"),
+            getMovieImages(movieId),
+            getMovieVideos(movieId, "it-IT"),
+            getMovieWatchProviders(movieId),
+            getSimilarMovies(movieId, 12),
+            getRecommendedMovies(movieId, 12),
           ])
 
-        if (streamingResponse.ok) {
-          const streamingData = (await streamingResponse.json()) as StreamingAvailability | null
-          setStreaming(streamingData)
+        if (streamingResult.status === "fulfilled") {
+          setStreaming(streamingResult.value)
         }
-        if (imagesResponse.ok) {
-          const imagesData = (await imagesResponse.json()) as MovieImagesResponse
-          setImages(imagesData)
+        if (imagesResult.status === "fulfilled") {
+          setImages(imagesResult.value)
         }
-        if (videosResponse.ok) {
-          const videosData = (await videosResponse.json()) as MovieVideosResponse
-          setVideos(videosData)
+        if (videosResult.status === "fulfilled") {
+          setVideos(videosResult.value)
         }
-        if (providersResponse.ok) {
-          const providersData = (await providersResponse.json()) as WatchProvidersResponse
-          setProviders(providersData)
+        if (providersResult.status === "fulfilled") {
+          setProviders(providersResult.value)
         }
-        if (similarResponse.ok) {
-          const similarData = (await similarResponse.json()) as MovieCandidateResponse[]
-          setSimilar(similarData)
+        if (similarResult.status === "fulfilled") {
+          setSimilar(similarResult.value)
         }
-        if (recommendedResponse.ok) {
-          const recommendedData = (await recommendedResponse.json()) as MovieCandidateResponse[]
-          setRecommended(recommendedData)
+        if (recommendedResult.status === "fulfilled") {
+          setRecommended(recommendedResult.value)
         }
       } catch {
         setError("Unable to load movie details.")
@@ -146,7 +111,26 @@ export default function MovieDetailsPage() {
     }
 
     if (movieId) fetchDetails()
-  }, [apiRoot, movieId])
+  }, [movieId])
+
+  useEffect(() => {
+    const loadLists = async () => {
+      setListLoading(true)
+      setListError(null)
+      try {
+        const data = await getLists()
+        setLists(data)
+      } catch {
+        setListError("Unable to load lists.")
+      } finally {
+        setListLoading(false)
+      }
+    }
+
+    if (movieId) {
+      loadLists()
+    }
+  }, [movieId])
 
   const runtime = details?.duration
     ? `${Math.floor(details.duration / 60)}h ${details.duration % 60}m`
@@ -155,6 +139,14 @@ export default function MovieDetailsPage() {
   const formattedRating = typeof details?.rating === "number"
     ? details.rating.toFixed(1)
     : undefined
+
+  const poster = details?.posterPath || "/placeholder.svg"
+  const primaryColor = colors?.primary || "var(--primary)"
+  const accentColor = colors?.accent || "var(--accent)"
+
+  useEffect(() => {
+    extractColorsFromImage(poster).then(setColors)
+  }, [poster])
 
   const imageItems = useMemo(() => {
     const TMDB_IMAGE_BASE_BACKDROP = "https://image.tmdb.org/t/p/w1280"
@@ -175,18 +167,51 @@ export default function MovieDetailsPage() {
 
   const providersEntry = providers?.results?.IT
 
+  const handleAlreadySeen = async (rating: number) => {
+    if (!movieId) return
+    setSavingHistory(true)
+    try {
+      await postWatchHistory({ movieId, rating })
+      toast.success("Aggiunto alla watch history")
+    } finally {
+      setSavingHistory(false)
+    }
+  }
+
+  const ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+  const handleAddToList = async (listId?: string) => {
+    if (!movieId || !listId) {
+      setListError("Invalid list. Please try again.")
+      return
+    }
+    setSavingList(listId)
+    try {
+      await addListItem(listId, movieId)
+      const listName = lists.find((list) => list.id === listId)?.name
+      toast.success(
+        listName
+          ? `Aggiunto a ${listName}`
+          : "Film aggiunto alla lista"
+      )
+    } finally {
+      setSavingList(null)
+    }
+  }
+
   return (
     <main className="min-h-screen pb-28">
       <Header />
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
           Back
-        </Link>
+        </button>
 
         {loading && (
           <p className="text-sm text-muted-foreground mt-4">Loading...</p>
@@ -198,12 +223,18 @@ export default function MovieDetailsPage() {
         {details && !loading && !error && (
           <>
             <div className="relative mt-6">
-              <div className="pointer-events-none absolute -top-12 right-0 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-10 left-0 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
+              <div
+                className="pointer-events-none absolute -top-12 right-0 h-64 w-64 rounded-full blur-3xl"
+                style={{ backgroundColor: `color-mix(in oklch, ${primaryColor} 30%, transparent)` }}
+              />
+              <div
+                className="pointer-events-none absolute -bottom-10 left-0 h-72 w-72 rounded-full blur-3xl"
+                style={{ backgroundColor: `color-mix(in oklch, ${accentColor} 30%, transparent)` }}
+              />
 
               <div className="relative z-10 grid gap-8 lg:grid-cols-[320px_1fr]">
                 <div className="space-y-6">
-                  <div className="relative aspect-[2/3] rounded-2xl overflow-hidden ring-1 ring-border/30">
+                  <div className="relative aspect-2/3 rounded-2xl overflow-hidden ring-1 ring-border/30">
                     <img
                       src={details.posterPath || "/placeholder.svg"}
                       alt={details.title}
@@ -225,13 +256,13 @@ export default function MovieDetailsPage() {
                       {details.year && <span>{details.year}</span>}
                       {formattedRating && (
                         <span className="inline-flex items-center gap-2">
-                          <Star className="h-4 w-4" />
+                            <Star className="h-4 w-4" style={{ color: primaryColor }} />
                           {formattedRating}
                         </span>
                       )}
                       {runtime && (
                         <span className="inline-flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
+                            <Clock className="h-4 w-4" style={{ color: primaryColor }} />
                           {runtime}
                         </span>
                       )}
@@ -341,14 +372,69 @@ export default function MovieDetailsPage() {
                   ) : null}
 
                   <div className="flex flex-wrap gap-3">
-                    <Button variant="outline" className="gap-2">
-                      <Star className="h-4 w-4" />
-                      Already seen
-                    </Button>
-                    <Button className="gap-2">
-                      <Play className="h-4 w-4" />
-                      I&apos;ll watch this
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="gap-2"
+                          style={{ borderColor: `color-mix(in oklch, ${primaryColor} 40%, transparent)` }}
+                          disabled={savingHistory}
+                        >
+                          <CircleCheckBig className="h-4 w-4" style={{ color: primaryColor }} />
+                          {savingHistory ? "Saving..." : "Already seen"}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-44">
+                        <DropdownMenuLabel>Rate this movie</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {ratingOptions.map((value) => (
+                          <DropdownMenuItem
+                            key={`rating-${value}`}
+                            onClick={() => handleAlreadySeen(value)}
+                          >
+                            <span className="flex items-center gap-2">
+                              <Star className="h-4 w-4 fill-primary text-primary" />
+                              {value} / 10
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          aria-label="Add to list"
+                          style={{
+                            background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                            border: `1px solid color-mix(in oklch, ${primaryColor} 60%, transparent)`
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-60">
+                        <DropdownMenuLabel>Choose a list</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {listLoading ? (
+                          <DropdownMenuItem disabled>Loading lists...</DropdownMenuItem>
+                        ) : listError ? (
+                          <DropdownMenuItem disabled>{listError}</DropdownMenuItem>
+                        ) : lists.length ? (
+                          lists.map((list, index) => (
+                            <DropdownMenuItem
+                              key={`${list.id ?? list.slug ?? list.name ?? "list"}-${index}`}
+                              onClick={() => handleAddToList(list.id)}
+                              disabled={!list.id || savingList === list.id}
+                            >
+                              {list.name}
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <DropdownMenuItem disabled>No lists available</DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
@@ -400,7 +486,7 @@ export default function MovieDetailsPage() {
                                   alt={actor.name}
                                   className="h-18 w-18 rounded-full object-cover"
                                 />
-                                <span className="text-base font-medium whitespace-normal break-words">
+                                <span className="text-base font-medium whitespace-normal wrap-break-word">
                                   {actor.name}
                                 </span>
                               </Link>
@@ -426,8 +512,8 @@ export default function MovieDetailsPage() {
                         <div
                           className={
                             item.type === "backdrop"
-                              ? "relative aspect-[16/9] rounded-xl overflow-hidden"
-                              : "relative aspect-[2/3] rounded-xl overflow-hidden"
+                              ? "relative aspect-video rounded-xl overflow-hidden"
+                              : "relative aspect-2/3 rounded-xl overflow-hidden"
                           }
                         >
                           <img
@@ -453,7 +539,7 @@ export default function MovieDetailsPage() {
                     <div key={video.id} className="space-y-2">
                       <p className="text-sm font-medium">{video.name}</p>
                       {video.site.toLowerCase() === "youtube" ? (
-                        <div className="relative aspect-[16/9] rounded-xl overflow-hidden">
+                        <div className="relative aspect-video rounded-xl overflow-hidden">
                           <iframe
                             src={`https://www.youtube.com/embed/${video.key}`}
                             title={video.name}
@@ -525,3 +611,4 @@ export default function MovieDetailsPage() {
     </main>
   )
 }
+

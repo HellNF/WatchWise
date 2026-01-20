@@ -6,8 +6,23 @@ export interface ExtractedColors {
   muted: string
 }
 
+const colorCache = new Map<string, ExtractedColors>()
+
 export async function extractColorsFromImage(imageUrl: string): Promise<ExtractedColors> {
+  if (!imageUrl || imageUrl.includes("/placeholder")) {
+    return Promise.resolve(getDefaultColors())
+  }
+
+  const cached = colorCache.get(imageUrl)
+  if (cached) {
+    return Promise.resolve(cached)
+  }
+
   return new Promise((resolve) => {
+    const proxiedUrl = imageUrl.startsWith("http")
+      ? `/api/image?url=${encodeURIComponent(imageUrl)}`
+      : imageUrl
+
     const img = new Image()
     img.crossOrigin = "anonymous"
 
@@ -27,7 +42,14 @@ export async function extractColorsFromImage(imageUrl: string): Promise<Extracte
 
       ctx.drawImage(img, 0, 0, sampleSize, sampleSize)
 
-      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize)
+      let imageData: ImageData
+      try {
+        imageData = ctx.getImageData(0, 0, sampleSize, sampleSize)
+      } catch {
+        resolve(getDefaultColors())
+        return
+      }
+
       const pixels = imageData.data
 
       // Collect color samples
@@ -66,19 +88,22 @@ export async function extractColorsFromImage(imageUrl: string): Promise<Extracte
       // Create muted version
       const muted = createMutedColor(primary)
 
-      resolve({
+      const extracted = {
         primary: rgbToOklch(primary.r, primary.g, primary.b, 0.85),
         secondary: rgbToOklch(secondary.r, secondary.g, secondary.b, 0.7),
         accent: rgbToOklch(accent.r, accent.g, accent.b, 0.9),
         muted: rgbToOklch(muted.r, muted.g, muted.b, 0.5),
-      })
+      }
+
+      colorCache.set(imageUrl, extracted)
+      resolve(extracted)
     }
 
     img.onerror = () => {
       resolve(getDefaultColors())
     }
 
-    img.src = imageUrl
+    img.src = proxiedUrl
   })
 }
 

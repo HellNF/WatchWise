@@ -11,6 +11,7 @@ import { tmdbTestRoute } from "./adapters/tmdb/test-route";
 import { preferenceRoutes } from "./data/preferences/routes";
 import { watchHistoryRoutes } from "./data/watch-history/routes";
 import { movieRoutes } from "./data/movies/routes";
+import { listRoutes } from "./data/lists/routes";
 
 
 const app = Fastify({ logger: true });
@@ -36,6 +37,7 @@ const start = async () => {
     await preferenceRoutes(app);
     await watchHistoryRoutes(app);
     await movieRoutes(app);
+    await listRoutes(app);
 
     // START SERVER
     await app.listen({ port: 3001, host: "0.0.0.0" });

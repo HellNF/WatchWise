@@ -31,4 +31,8 @@ export interface PreferenceProfile {
   actors: Record<string, number>;
   directors: Record<string, number>;
   moods: Record<string, number>;
+  energies: Record<string, number>;
+  companies: Record<string, number>;
+  durations: Record<string, number>;
+  novelties: Record<string, number>;
 }

@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { MovieCard } from "@/components/movie-card"
+import { getMoviesByPerson } from "@/lib/api"
 import { ChevronLeft } from "lucide-react"
 
 interface MovieCardItem {
@@ -31,29 +32,12 @@ export default function PersonMoviesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const apiBase = useMemo(
-    () => process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001",
-    []
-  )
-
   useEffect(() => {
     const fetchMovies = async () => {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(
-          `${apiBase}/movies/by-${role}/${personId}?limit=80`
-        )
-        if (!response.ok) {
-          throw new Error("Failed to fetch movies")
-        }
-        const data = (await response.json()) as Array<{
-          movieId: string
-          title: string
-          year?: number
-          voteAverage: number
-          posterPath?: string
-        }>
+        const data = await getMoviesByPerson(role, personId, { limit: 80 })
 
         const mapped = data.map((item) => ({
           id: item.movieId,
@@ -74,7 +58,7 @@ export default function PersonMoviesPage() {
     if (personId) {
       fetchMovies()
     }
-  }, [apiBase, personId, role])
+  }, [personId, role])
 
   const displayed = movies.slice(0, visibleCount)
 

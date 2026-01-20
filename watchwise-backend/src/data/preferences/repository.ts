@@ -24,6 +24,20 @@ export async function insertPreferenceEvent(
   await collection().insertOne(document);
 }
 
+export async function insertPreferenceEvents(
+  userId: string,
+  events: Omit<UserPreferenceEvent, "_id" | "userId">[]
+) {
+  if (!events.length) return;
+  const documents: UserPreferenceEvent[] = events.map((event) => ({
+    _id: new ObjectId(),
+    ...event,
+    userId: new ObjectId(userId)
+  }));
+
+  await collection().insertMany(documents);
+}
+
 export async function getUserPreferences(userId: string) {
   return collection()
     .find({ userId: new ObjectId(userId) })
@@ -49,5 +63,17 @@ export async function deletePreferenceEvent(
   await collection().deleteOne({
     _id: new ObjectId(eventId),
     userId: new ObjectId(userId)
+  });
+}
+
+export async function deleteRecentPreferencesBySource(
+  userId: string,
+  source: string,
+  since: Date
+) {
+  await collection().deleteMany({
+    userId: new ObjectId(userId),
+    source,
+    createdAt: { $gte: since }
   });
 }

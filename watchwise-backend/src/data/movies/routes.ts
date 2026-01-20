@@ -2,6 +2,9 @@ import { FastifyInstance } from "fastify";
 import {
   fetchTrendingMovies,
   fetchPopularMovies,
+  fetchNowPlayingMovies,
+  fetchTopRatedMovies,
+  fetchUpcomingMovies,
   fetchMovieDetails,
   fetchStreamingAvailability,
   fetchMovieGenres,
@@ -19,17 +22,43 @@ import {
 
 export async function movieRoutes(app: FastifyInstance) {
   app.get("/api/movies/trending", async (req) => {
-    const { region = "IT", limit } = (req.query as any) ?? {};
+    const { region = "IT", limit, page } = (req.query as any) ?? {};
     const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 20;
+    const parsedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
 
-    return fetchTrendingMovies(region, parsedLimit);
+    return fetchTrendingMovies(region, parsedLimit, parsedPage);
   });
 
   app.get("/api/movies/popular", async (req) => {
-    const { region = "IT", limit } = (req.query as any) ?? {};
+    const { region = "IT", limit, page } = (req.query as any) ?? {};
     const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 20;
+    const parsedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
 
-    return fetchPopularMovies(region, parsedLimit);
+    return fetchPopularMovies(region, parsedLimit, parsedPage);
+  });
+
+  app.get("/api/movies/now-playing", async (req) => {
+    const { region = "IT", limit, page } = (req.query as any) ?? {};
+    const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 20;
+    const parsedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
+
+    return fetchNowPlayingMovies(region, parsedLimit, parsedPage);
+  });
+
+  app.get("/api/movies/top-rated", async (req) => {
+    const { region = "IT", limit, page } = (req.query as any) ?? {};
+    const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 20;
+    const parsedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
+
+    return fetchTopRatedMovies(region, parsedLimit, parsedPage);
+  });
+
+  app.get("/api/movies/upcoming", async (req) => {
+    const { region = "IT", limit, page } = (req.query as any) ?? {};
+    const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 20;
+    const parsedPage = Number.isFinite(Number(page)) ? Math.max(1, Number(page)) : 1;
+
+    return fetchUpcomingMovies(region, parsedLimit, parsedPage);
   });
 
   app.get("/api/movies/by-actor/:id", async (req, reply) => {

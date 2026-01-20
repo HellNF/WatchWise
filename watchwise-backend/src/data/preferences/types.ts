@@ -4,7 +4,11 @@ export type PreferenceType =
   | "genre"
   | "actor"
   | "director"
-  | "mood";
+  | "mood"
+  | "energy"
+  | "company"
+  | "duration"
+  | "novelty";
 
 export type PreferenceSource =
   | "questionnaire"

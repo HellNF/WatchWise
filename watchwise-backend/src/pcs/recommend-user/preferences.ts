@@ -1,6 +1,10 @@
 import { ObjectId } from "mongodb";
 import { getUserPreferenceEvents } from "../../data/preferences/repository";
+import { getWatchHistoryEntries } from "../../data/watch-history/repository";
+import { WatchHistoryEntry } from "../../data/watch-history/types";
+import { fetchMovieDetails } from "../../adapters/tmdb/service";
 import { PreferenceProfile } from "./types";
+import { PreferenceSource, PreferenceType } from "../../data/preferences/types";
 
 const SHORT_TERM_LAMBDA = 0.2;
 const LONG_TERM_LAMBDA = 0.02;
@@ -17,12 +21,15 @@ export async function buildPreferenceProfile(
     300
   );
 
+  const derivedEvents = await derivePreferenceEventsFromWatchHistory(userId, 200);
+  const allEvents = [...events, ...derivedEvents];
+
   const shortTerm = emptyProfile();
   const longTerm = emptyProfile();
 
   const now = Date.now();
 
-  for (const ev of events) {
+  for (const ev of allEvents) {
     const ageDays =
       (now - ev.createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
@@ -45,7 +52,16 @@ export async function buildPreferenceProfile(
 /* ---------- helpers ---------- */
 
 function emptyProfile(): PreferenceProfile {
-  return { genres: {}, actors: {}, directors: {}, moods: {} };
+  return {
+    genres: {},
+    actors: {},
+    directors: {},
+    moods: {},
+    energies: {},
+    companies: {},
+    durations: {},
+    novelties: {},
+  };
 }
 
 function addContribution(
@@ -58,7 +74,11 @@ function addContribution(
     type === "genre" ? profile.genres :
     type === "actor" ? profile.actors :
     type === "director" ? profile.directors :
-    profile.moods;
+    type === "mood" ? profile.moods :
+    type === "energy" ? profile.energies :
+    type === "company" ? profile.companies :
+    type === "duration" ? profile.durations :
+    profile.novelties;
 
   bucket[value] = (bucket[value] || 0) + amount;
 }
@@ -84,7 +104,16 @@ function mergeProfiles(
 
   const merged = emptyProfile();
 
-  for (const key of ["genres", "actors", "directors", "moods"] as const) {
+  for (const key of [
+    "genres",
+    "actors",
+    "directors",
+    "moods",
+    "energies",
+    "companies",
+    "durations",
+    "novelties",
+  ] as const) {
     const st = shortTerm[key];
     const lt = longTerm[key];
 
@@ -97,4 +126,124 @@ function mergeProfiles(
   }
 
   return merged;
+}
+
+type DerivedPreferenceEvent = {
+  type: PreferenceType;
+  value: string;
+  weight: number;
+  source: PreferenceSource;
+  createdAt: Date;
+};
+
+async function derivePreferenceEventsFromWatchHistory(
+  userId: string,
+  limit = 200
+): Promise<DerivedPreferenceEvent[]> {
+  const history = await getWatchHistoryEntries(userId, limit);
+  if (!history.length) return [];
+
+  const detailsCache = new Map<number, Awaited<ReturnType<typeof fetchMovieDetails>> | null>();
+  const events: DerivedPreferenceEvent[] = [];
+
+  for (const entry of history) {
+    const tmdbId = parseTmdbId(entry.movieId);
+    if (!tmdbId) continue;
+
+    let details = detailsCache.get(tmdbId);
+    if (details === undefined) {
+      try {
+        details = await fetchMovieDetails(tmdbId);
+      } catch {
+        details = null;
+      }
+      detailsCache.set(tmdbId, details);
+    }
+    if (!details) continue;
+
+    const baseWeight = computeWatchWeight(entry);
+    const createdAt = entry.watchedAt;
+
+    if (details.genres?.length) {
+      const perGenre = baseWeight * 0.7 / details.genres.length;
+      for (const genre of details.genres) {
+        events.push({
+          type: "genre",
+          value: genre,
+          weight: perGenre,
+          source: "watch",
+          createdAt
+        });
+      }
+    }
+
+    if (details.director) {
+      events.push({
+        type: "director",
+        value: details.director,
+        weight: baseWeight * 0.6,
+        source: "watch",
+        createdAt
+      });
+    }
+
+    if (details.actors?.length) {
+      const topActors = details.actors.slice(0, 4);
+      const perActor = baseWeight * 0.5 / topActors.length;
+      for (const actor of topActors) {
+        events.push({
+          type: "actor",
+          value: actor,
+          weight: perActor,
+          source: "watch",
+          createdAt
+        });
+      }
+    }
+
+    const implicitMood = inferImplicitMood(entry);
+    if (implicitMood) {
+      events.push({
+        type: "mood",
+        value: implicitMood,
+        weight: Math.min(0.5, baseWeight * 0.4),
+        source: "implicit",
+        createdAt
+      });
+    }
+  }
+
+  return events;
+}
+
+function parseTmdbId(movieId: string): number | null {
+  if (!movieId?.startsWith("tmdb:")) return null;
+  const parsed = Number(movieId.replace("tmdb:", ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function computeWatchWeight(entry: WatchHistoryEntry): number {
+  let weight = entry.completed ? 0.5 : 0.3;
+
+  if (typeof entry.rating === "number") {
+    const normalized = clamp((entry.rating - 3) / 7, 0, 1);
+    weight = 0.3 + normalized * 0.7;
+    if (!entry.completed) {
+      weight *= 0.7;
+    }
+  }
+
+  return clamp(weight, 0, 1);
+}
+
+function inferImplicitMood(entry: WatchHistoryEntry): string | null {
+  const hour = entry.watchedAt.getHours();
+  if (hour >= 5 && hour < 11) return "morning";
+  if (hour >= 11 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 22) return "evening";
+  return "late-night";
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
