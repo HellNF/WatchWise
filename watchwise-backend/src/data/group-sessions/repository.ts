@@ -12,3 +12,19 @@ export async function createGroupSession(
   const result = await collection().insertOne(session as GroupSession);
   return { _id: result.insertedId, ...session };
 }
+
+export async function findGroupSessionById(
+  sessionId: ObjectId
+): Promise<GroupSession | null> {
+  return collection().findOne({ _id: sessionId });
+}
+
+export async function updateGroupSessionById(
+  sessionId: ObjectId,
+  data: Partial<Omit<GroupSession, "_id" | "groupId">>
+): Promise<void> {
+  await collection().updateOne(
+    { _id: sessionId },
+    { $set: data }
+  );
+}

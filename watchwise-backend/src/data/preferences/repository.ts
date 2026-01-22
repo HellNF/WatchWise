@@ -56,6 +56,16 @@ export async function getUserPreferenceEvents(
     .toArray();
 }
 
+export async function getLatestQuestionnaireEvent(
+  userId: ObjectId
+) {
+  return collection()
+    .find({ userId, source: "questionnaire" })
+    .sort({ createdAt: -1 })
+    .limit(1)
+    .next();
+}
+
 export async function deletePreferenceEvent(
   userId: string,
   eventId: string
@@ -75,5 +85,15 @@ export async function deleteRecentPreferencesBySource(
     userId: new ObjectId(userId),
     source,
     createdAt: { $gte: since }
+  });
+}
+
+export async function deletePreferencesBySource(
+  userId: string,
+  source: string
+) {
+  await collection().deleteMany({
+    userId: new ObjectId(userId),
+    source
   });
 }

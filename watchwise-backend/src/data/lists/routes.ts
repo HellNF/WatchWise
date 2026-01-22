@@ -10,6 +10,7 @@ import {
   getUserListById,
   getUserLists,
   removeListItem
+  , deleteUserList
 } from "./repository";
 
 export async function listRoutes(app: FastifyInstance) {
@@ -112,6 +113,29 @@ export async function listRoutes(app: FastifyInstance) {
       }
 
       await removeListItem(req.userId!, listId, movieId);
+      return { ok: true };
+    }
+  );
+
+  app.delete(
+    "/api/lists/:listId",
+    { preHandler: [requireAuth] },
+    async (req) => {
+      const { listId } = req.params as { listId: string };
+
+      if (!ObjectId.isValid(listId)) {
+        throw new AppError("INVALID_INPUT", 400, "Invalid list id");
+      }
+
+      const list = await getUserListById(req.userId!, listId);
+      if (!list) {
+        throw new AppError("NOT_FOUND", 404, "List not found");
+      }
+      if (list.isDefault) {
+        throw new AppError("INVALID_INPUT", 403, "Default lists cannot be deleted");
+      }
+
+      await deleteUserList(req.userId!, listId);
       return { ok: true };
     }
   );

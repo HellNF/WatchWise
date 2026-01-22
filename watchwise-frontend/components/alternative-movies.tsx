@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { ChevronRight } from "lucide-react"
 import { MovieCard } from "@/components/movie-card"
+import { MovieQuickActions } from "@/components/movie-quick-actions"
 export interface AlternativeMovieItem {
   id: string
   title: string
@@ -40,6 +41,7 @@ export function AlternativeMovies({ movies }: { movies?: AlternativeMovieItem[] 
             rating={movie.rating}
             isDiscovery={movie.isDiscovery}
             reason={movie.reason}
+            children={<MovieQuickActions movieId={movie.id} />}
           />
         ))}
       </div>

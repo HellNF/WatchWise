@@ -12,6 +12,8 @@ import { preferenceRoutes } from "./data/preferences/routes";
 import { watchHistoryRoutes } from "./data/watch-history/routes";
 import { movieRoutes } from "./data/movies/routes";
 import { listRoutes } from "./data/lists/routes";
+import { groupRoutes } from "./data/groups/routes";
+import { groupSessionRoutes } from "./data/group-sessions/routes";
 
 
 const app = Fastify({ logger: true });
@@ -28,6 +30,7 @@ const start = async () => {
     await app.register(cors, {
       origin: true,
       credentials: true,
+      methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
     });
 
     // REGISTRA ROUTES
@@ -38,6 +41,8 @@ const start = async () => {
     await watchHistoryRoutes(app);
     await movieRoutes(app);
     await listRoutes(app);
+    await groupRoutes(app);
+    await groupSessionRoutes(app);
 
     // START SERVER
     await app.listen({ port: 3001, host: "0.0.0.0" });

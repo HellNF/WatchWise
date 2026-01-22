@@ -9,11 +9,25 @@ import {
 
 export async function watchHistoryRoutes(app: FastifyInstance) {
 
+  const normalizeMovieId = (movieId?: string) => {
+    if (!movieId) return movieId;
+    if (movieId.startsWith("tmdb:")) return movieId;
+    const parsed = Number(movieId);
+    return Number.isFinite(parsed) ? `tmdb:${parsed}` : movieId;
+  };
+
   app.get(
     "/api/watch-history",
     { preHandler: [requireAuth] },
     async (req) => {
-      return getWatchHistory(req.userId!);
+      const rows = await getWatchHistory(req.userId!);
+      return rows.map((row) => ({
+        id: row._id.toString(),
+        movieId: row.movieId,
+        watchedAt: row.watchedAt,
+        rating: row.rating,
+        completed: row.completed
+      }));
     }
   );
 
@@ -25,7 +39,7 @@ export async function watchHistoryRoutes(app: FastifyInstance) {
 
       await insertWatchHistory({
         userId: req.userId!,
-        movieId: body.movieId,
+        movieId: normalizeMovieId(body.movieId) ?? body.movieId,
         completed: body.completed ?? true,
         rating: body.rating,
         watchedAt: new Date()

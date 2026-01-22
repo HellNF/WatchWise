@@ -1,0 +1,1 @@
+export { recommendForGroup } from "./service";

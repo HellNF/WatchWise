@@ -47,10 +47,12 @@ export interface TMDBMovieDetails {
   title: string;
   poster_path?: string;
   vote_average?: number;
+  original_language?: string;
   overview?: string;
   runtime?: number;
   release_date?: string;
   genres?: { id: number; name: string }[];
+  production_countries?: { iso_3166_1: string; name: string }[];
   credits: TMDBCredits;
 }
 

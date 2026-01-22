@@ -23,9 +23,11 @@ export interface MovieDetails {
   year?: number;
   rating?: number;
   posterPath?: string;
+  originalLanguage?: string;
   overview?: string;
   duration?: number;
   genres?: string[];
+  productionCountries?: string[];
   director?: string;
   directorId?: number;
   directorImage?: string;
@@ -101,9 +103,11 @@ export function mapTMDBDetailsToMovieDetails(
     posterPath: movie.poster_path
       ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
       : undefined,
+    originalLanguage: movie.original_language,
     overview: movie.overview,
     duration: movie.runtime,
     genres: movie.genres?.map((g) => g.name),
+    productionCountries: movie.production_countries?.map((c) => c.iso_3166_1),
     director,
     directorId,
     directorImage,

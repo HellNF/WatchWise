@@ -15,4 +15,9 @@ export interface GroupSession {
   createdAt: Date;
 
   selectedMovieId?: string;
+
+  softStartAt?: Date;
+  softStartTimeoutMinutes?: number;
+  startedAt?: Date;
+  status?: "pending" | "started";
 }

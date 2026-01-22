@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MovieCard } from "@/components/movie-card"
+import { MovieQuickActions } from "@/components/movie-quick-actions"
 import { extractColorsFromImage, type ExtractedColors } from "@/lib/color-extractor"
 import {
   addListItem,
@@ -19,6 +20,7 @@ import {
   getMovieWatchProviders,
   getRecommendedMovies,
   getSimilarMovies,
+  getWatchHistory,
   postWatchHistory,
   type MovieDetails,
   type MovieImages,
@@ -26,6 +28,7 @@ import {
   type MovieVideos,
   type StreamingAvailability,
   type UserList,
+  type WatchHistoryEntry,
   type WatchProviders,
 } from "@/lib/api"
 import {
@@ -66,6 +69,7 @@ export default function MovieDetailsPage() {
   const [listError, setListError] = useState<string | null>(null)
   const [savingList, setSavingList] = useState<string | null>(null)
   const [savingHistory, setSavingHistory] = useState(false)
+  const [watchEntry, setWatchEntry] = useState<WatchHistoryEntry | null>(null)
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -132,6 +136,21 @@ export default function MovieDetailsPage() {
     }
   }, [movieId])
 
+  useEffect(() => {
+    const loadWatchHistory = async () => {
+      if (!movieId) return
+      try {
+        const history = await getWatchHistory()
+        const entry = history.find((item) => item.movieId === movieId) ?? null
+        setWatchEntry(entry)
+      } catch {
+        setWatchEntry(null)
+      }
+    }
+
+    loadWatchHistory()
+  }, [movieId])
+
   const runtime = details?.duration
     ? `${Math.floor(details.duration / 60)}h ${details.duration % 60}m`
     : undefined
@@ -172,6 +191,7 @@ export default function MovieDetailsPage() {
     setSavingHistory(true)
     try {
       await postWatchHistory({ movieId, rating })
+      setWatchEntry({ movieId, rating, completed: true })
       toast.success("Aggiunto alla watch history")
     } finally {
       setSavingHistory(false)
@@ -381,7 +401,11 @@ export default function MovieDetailsPage() {
                           disabled={savingHistory}
                         >
                           <CircleCheckBig className="h-4 w-4" style={{ color: primaryColor }} />
-                          {savingHistory ? "Saving..." : "Already seen"}
+                          {savingHistory
+                            ? "Saving..."
+                            : watchEntry
+                              ? "Already in history"
+                              : "Already seen"}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-44">
@@ -578,6 +602,7 @@ export default function MovieDetailsPage() {
                           poster={movie.posterPath}
                           year={movie.year}
                           rating={Number.isFinite(movie.voteAverage) ? movie.voteAverage : undefined}
+                          children={<MovieQuickActions movieId={movie.movieId} />}
                         />
                       ))}
                     </div>
@@ -596,6 +621,7 @@ export default function MovieDetailsPage() {
                           poster={movie.posterPath}
                           year={movie.year}
                           rating={Number.isFinite(movie.voteAverage) ? movie.voteAverage : undefined}
+                          children={<MovieQuickActions movieId={movie.movieId} />}
                         />
                       ))}
                     </div>

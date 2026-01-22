@@ -10,6 +10,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
+import { MovieQuickActions } from "@/components/movie-quick-actions"
 
 import { Star,Calendar } from "lucide-react"
 
@@ -135,11 +136,12 @@ export function PodiumRow({
                     overflow-visible
                   "
                 >
-                  <Link
-                    href={`/movie/${encodeURIComponent(item.id)}`}
-                    className="group block"
-                  >
-                    <div className="relative overflow-visible">
+                  <div className="group relative">
+                    <Link
+                      href={`/movie/${encodeURIComponent(item.id)}`}
+                      className="block"
+                    >
+                      <div className="relative overflow-visible">
                       {/* Rank number: visible outline + slight fill */}
                       <div
                         className="
@@ -178,6 +180,10 @@ export function PodiumRow({
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
+
+                        <div className="absolute bottom-2 right-2 z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
+                          <MovieQuickActions movieId={item.id} />
+                        </div>
                       </div>
 
                       {/* Optional title on hover */}
@@ -199,8 +205,9 @@ export function PodiumRow({
                           </p>
                         </div>
                       </div>
-                    </div>
-                  </Link>
+                      </div>
+                    </Link>
+                  </div>
                 </CarouselItem>
               )
             })}

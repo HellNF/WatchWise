@@ -1,13 +1,15 @@
 "use client"
 
-import { Home, Film, User, Laugh } from "lucide-react"
+import { Home, Users, User, Search, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 const navItems = [
-  { href: "/movie?category=popular", icon: Home, label: "Home" },
-  { href: "/seen", icon: Film, label: "Watched" },
-  {href:"/questionnaire", icon: Laugh, label: "Mood"},
+  { href: "/home", icon: Home, label: "Home" },
+  
+  {href:"/search", icon: Search, label: "Search"},
+  { href: "/suggestions", icon: Sparkles, label: "For you" },
+  {href:"/groups", icon: Users, label: "Groups"},
   { href: "/profile", icon: User, label: "Profile" },
 ]
 
@@ -21,6 +23,7 @@ export function BottomNav() {
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+            const isForYou = item.label === "For you"
 
             return (
               <Link
@@ -29,18 +32,32 @@ export function BottomNav() {
                 className="relative flex flex-col items-center gap-0.5 py-1.5 sm:py-2 px-3 sm:px-4 md:px-5 rounded-2xl transition-all duration-300"
               >
                 {/* Active pill background */}
-                {isActive && <div className="absolute inset-0 liquid-glass-active rounded-2xl" />}
+                {isActive && (
+                  <div
+                    className={`absolute inset-0 rounded-2xl ${
+                      isForYou ? "liquid-glass-active-for-you" : "liquid-glass-active"
+                    }`}
+                  />
+                )}
 
                 <div className="relative z-10">
                   <Icon
                     className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 transition-colors duration-300 drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)] ${
-                      isActive ? "text-primary" : "text-white/80"
+                      isActive
+                        ? isForYou
+                          ? "text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.75)]"
+                          : "text-primary"
+                        : "text-white/80"
                     }`}
                   />
                 </div>
                 <span
                   className={`relative z-10 text-[9px] sm:text-[10px] md:text-xs font-medium transition-colors duration-300 ${
-                    isActive ? "text-primary" : "text-white/80"
+                    isActive
+                      ? isForYou
+                        ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+                        : "text-primary"
+                      : "text-white/80"
                   }`}
                 >
                   {item.label}

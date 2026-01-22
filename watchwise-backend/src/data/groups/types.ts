@@ -6,5 +6,10 @@ export interface Group {
   name: string;
   members: ObjectId[];
 
+  hostId?: ObjectId;
+  joinCode?: string;
+  joinCodeExpiresAt?: Date;
+  status?: "open" | "locked" | "closed";
+
   createdAt: Date;
 }

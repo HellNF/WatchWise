@@ -43,7 +43,7 @@ export function Header() {
                 <Link href="/movie?category=top_rated" className="block rounded-sm px-3 py-2 text-sm text-foreground/90 hover:bg-accent hover:text-accent-foreground">
                   Top rated
                 </Link>
-                <Link href="/movie?category=selected_for_you" className="block rounded-sm px-3 py-2 text-sm text-foreground/90 hover:bg-primary hover:text-accent-foreground">
+                <Link href="/suggestions" className="block rounded-sm px-3 py-2 text-sm text-foreground/90 hover:bg-primary hover:text-accent-foreground">
                   Selected for you
                 </Link>
               </div>

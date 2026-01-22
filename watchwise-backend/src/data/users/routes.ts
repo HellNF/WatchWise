@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { requireAuth } from "../../middleware/auth";
 import { getUserById, getUserByEmail , updateUser,deleteUserAndData } from "./repository";
 import { AppError } from "../../common/errors";
+import { ObjectId } from "mongodb";
 
 export async function userRoutes(app: FastifyInstance) {
 
@@ -33,6 +34,29 @@ export async function userRoutes(app: FastifyInstance) {
       const { email } = req.params as { email: string };
       const user = await getUserByEmail(email);
 
+      if (!user) {
+        throw new AppError("NOT_FOUND", 404, "User not found");
+      }
+
+      return {
+        id: user._id.toString(),
+        email: user.email,
+        username: user.username,
+        avatar: user.avatar
+      };
+    }
+  );
+
+  app.get(
+    "/api/users/:id",
+    { preHandler: [requireAuth] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      if (!ObjectId.isValid(id)) {
+        throw new AppError("INVALID_INPUT", 400, "Invalid user id");
+      }
+
+      const user = await getUserById(id);
       if (!user) {
         throw new AppError("NOT_FOUND", 404, "User not found");
       }

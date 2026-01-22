@@ -93,6 +93,14 @@ export async function getUserListById(userId: string, listId: string) {
   });
 }
 
+export async function getUserListBySlug(userId: string, slug: string) {
+  await ensureDefaultLists(userId);
+  return listsCollection().findOne({
+    userId: toObjectId(userId),
+    slug
+  });
+}
+
 export async function getListItems(userId: string, listId: string) {
   return itemsCollection()
     .find({
@@ -101,6 +109,12 @@ export async function getListItems(userId: string, listId: string) {
     })
     .sort({ addedAt: -1 })
     .toArray();
+}
+
+export async function getListItemsBySlug(userId: string, slug: string) {
+  const list = await getUserListBySlug(userId, slug);
+  if (!list) return [];
+  return getListItems(userId, list._id.toString());
 }
 
 export async function addListItem(
@@ -139,5 +153,18 @@ export async function removeListItem(
     userId: toObjectId(userId),
     listId: toObjectId(listId),
     movieId
+  });
+}
+
+export async function deleteUserList(userId: string, listId: string) {
+  await itemsCollection().deleteMany({
+    userId: toObjectId(userId),
+    listId: toObjectId(listId)
+  });
+
+  await listsCollection().deleteOne({
+    _id: toObjectId(listId),
+    userId: toObjectId(userId),
+    isDefault: { $ne: true }
   });
 }

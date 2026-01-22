@@ -18,6 +18,9 @@ export interface EnrichedMovieCandidate extends MovieCandidate {
   genres?: string[];
   director?: string;
   actors?: string[];
+  duration?: number;
+  productionCountries?: string[];
+  originalLanguage?: string;
 }
 
 

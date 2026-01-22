@@ -8,7 +8,7 @@ type ApiErrorDetails = {
 export type ApiError = Error & ApiErrorDetails
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH"
+  method?: "GET" | "POST" | "PATCH" | "DELETE"
   body?: unknown
   headers?: HeadersInit
 }
@@ -46,13 +46,29 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
   }
 
   const url = `${apiRoot}${path.startsWith("/") ? "" : "/"}${path}`
+  const headers = new Headers({ Authorization: DEV_AUTH_HEADER })
+
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => headers.set(key, value))
+    } else if (Array.isArray(options.headers)) {
+      for (const [key, value] of options.headers) {
+        headers.set(key, value)
+      }
+    } else {
+      for (const [key, value] of Object.entries(options.headers)) {
+        headers.set(key, value as string)
+      }
+    }
+  }
+
+  if (options.body !== undefined) {
+    headers.set("Content-Type", "application/json")
+  }
+
   const response = await fetch(url, {
     method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: DEV_AUTH_HEADER,
-      ...options.headers,
-    },
+    headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   })
 
@@ -76,6 +92,93 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
 
 export type RecommendationRequest = {
   context?: Record<string, unknown>
+  limit?: number
+  offset?: number
+}
+
+export type RecommendationMovieCandidate = {
+  movieId: string
+  title: string
+  year?: number
+  popularity: number
+  voteAverage: number
+  voteCount: number
+  posterPath?: string
+}
+
+export type RecommendationScoredMovie = {
+  movie: RecommendationMovieCandidate
+  score: number
+  reasons: string[]
+  serendipity?: boolean
+}
+
+export type RecommendationResponse = {
+  recommended: RecommendationScoredMovie
+  topK: RecommendationScoredMovie[]
+}
+
+export type GroupSummary = {
+  id: string
+  name: string
+  members: string[]
+  hostId?: string
+  joinCode?: string
+  joinCodeExpiresAt?: string
+  status?: "open" | "locked" | "closed"
+}
+
+export type GroupQuestionnaireMember = {
+  userId: string
+  completed: boolean
+  lastCompletedAt?: string | null
+}
+
+export type GroupQuestionnaireStatus = {
+  groupId: string
+  dayStart: string
+  total: number
+  completed: number
+  allComplete: boolean
+  members: GroupQuestionnaireMember[]
+}
+
+export type GroupSession = {
+  id: string
+  groupId: string
+  context?: Record<string, unknown>
+  createdAt: string
+  selectedMovieId?: string
+  status?: "pending" | "started"
+  softStartAt?: string
+  softStartTimeoutMinutes?: number
+  startedAt?: string
+}
+
+export type GroupSoftstartStatus = {
+  groupId: string
+  sessionId: string
+  ready: boolean
+  reason: "all_complete" | "timeout" | "pending"
+  softStartAt: string
+  timeoutAt: string
+  questionnaire: GroupQuestionnaireStatus
+}
+
+export type GroupRecommendationMovie = RecommendationScoredMovie & {
+  compatibility: number
+  outsider?: boolean
+}
+
+export type GroupRecommendationResponse = {
+  recommended: GroupRecommendationMovie
+  topK: GroupRecommendationMovie[]
+  buckets: {
+    high: GroupRecommendationMovie[]
+    medium: GroupRecommendationMovie[]
+    explore: GroupRecommendationMovie[]
+  }
+  outsiders: GroupRecommendationMovie[]
 }
 
 export type PreferenceEvent = {
@@ -201,7 +304,7 @@ export type MoviesCategory =
   | "upcoming"
 
 export async function getRecommendations(body: RecommendationRequest = {}) {
-  return requestJson<unknown>("/pcs/recommend/user", {
+  return requestJson<RecommendationResponse>("/pcs/recommend/user", {
     method: "POST",
     body,
   })
@@ -215,6 +318,18 @@ export async function postPreference(data: PreferenceEvent) {
   return requestJson<unknown>("/preferences", {
     method: "POST",
     body: data,
+  })
+}
+
+export async function deletePreference(id: string) {
+  return requestJson<{ ok: boolean }>(`/preferences/${id}`, {
+    method: "DELETE",
+  })
+}
+
+export async function deletePreferencesBySource(source: string) {
+  return requestJson<{ ok: boolean }>(`/preferences/source/${source}`, {
+    method: "DELETE",
   })
 }
 
@@ -300,8 +415,18 @@ export async function postWatchHistory(data: WatchHistoryItem) {
   })
 }
 
+export async function deleteWatchHistory(id: string) {
+  return requestJson<{ ok: boolean }>(`/watch-history/${id}`, {
+    method: "DELETE",
+  })
+}
+
 export async function getProfile() {
   return requestJson<Profile>("/users/me")
+}
+
+export async function getUserById(userId: string) {
+  return requestJson<Profile>(`/users/${userId}`)
 }
 
 export async function patchProfile(data: PatchProfileInput) {
@@ -313,6 +438,75 @@ export async function patchProfile(data: PatchProfileInput) {
 
 export async function getMovieGenres() {
   return requestJson<MovieGenre[]>("/movies/genres")
+}
+
+export async function getGroups() {
+  return requestJson<GroupSummary[]>("/groups")
+}
+
+export async function createGroup(data: { name: string; memberIds?: string[] }) {
+  return requestJson<GroupSummary>("/groups", {
+    method: "POST",
+    body: data,
+  })
+}
+
+export async function joinGroup(code: string) {
+  return requestJson<{ ok: boolean; groupId: string }>("/groups/join", {
+    method: "POST",
+    body: { code },
+  })
+}
+
+export async function getGroup(groupId: string) {
+  return requestJson<GroupSummary>(`/groups/${groupId}`)
+}
+
+export async function leaveGroup(groupId: string) {
+  return requestJson<{ ok: boolean }>(`/groups/${groupId}/members/me`, {
+    method: "DELETE",
+  })
+}
+
+export async function getGroupQuestionnaireStatus(groupId: string) {
+  return requestJson<GroupQuestionnaireStatus>(
+    `/groups/${groupId}/questionnaire-status`
+  )
+}
+
+export async function createGroupSession(groupId: string, context?: Record<string, unknown>) {
+  return requestJson<GroupSession>(`/groups/${groupId}/sessions`, {
+    method: "POST",
+    body: { context },
+  })
+}
+
+export async function getGroupSoftstartStatus(groupId: string, sessionId: string) {
+  return requestJson<GroupSoftstartStatus>(
+    `/groups/${groupId}/sessions/${sessionId}/softstart/status`
+  )
+}
+
+export async function startGroupSession(groupId: string, sessionId: string) {
+  return requestJson<{ ok: boolean; startedAt: string }>(
+    `/groups/${groupId}/sessions/${sessionId}/start`,
+    { method: "POST" }
+  )
+}
+
+export async function getGroupRecommendations(
+  groupId: string,
+  sessionId: string,
+  data?: RecommendationRequest
+) {
+  return requestJson<GroupRecommendationResponse>("/pcs/recommend/group", {
+    method: "POST",
+    body: {
+      groupId,
+      sessionId,
+      ...data,
+    },
+  })
 }
 
 export async function getMoviesByCategory(
@@ -377,6 +571,14 @@ export async function getMoviesByPerson(
   )
 }
 
+export async function getMoviesByGenre(
+  genreId: number | string,
+  params?: { region?: string; limit?: number }
+) {
+  const query = buildQuery(params)
+  return requestJson<MovieListItem[]>(`/movies/by-genre/${genreId}${query}`)
+}
+
 export async function getLists() {
   return requestJson<
     Array<{ id: string; name: string; slug: string; isDefault: boolean }>
@@ -403,7 +605,28 @@ export async function addListItem(listId: string, movieId: string) {
   )
 }
 
+export async function deleteList(listId: string) {
+  return requestJson<{ ok: boolean }>(`/lists/${listId}`, {
+    method: "DELETE",
+  })
+}
+
+export async function getListItems(listId: string) {
+  return requestJson<UserListItem[]>(`/lists/${listId}/items`)
+}
+
+export async function removeListItem(listId: string, movieId: string) {
+  return requestJson<{ ok: boolean }>(`/lists/${listId}/items/${movieId}`, {
+    method: "DELETE",
+  })
+}
+
 export async function searchPeople(query: string, limit = 5) {
   const params = buildQuery({ q: query, limit })
   return requestJson<PersonSearchResult[]>(`/people/search${params}`)
+}
+
+export async function searchMovies(query: string, limit = 10) {
+  const params = buildQuery({ q: query, limit })
+  return requestJson<MovieListItem[]>(`/movies/search${params}`)
 }

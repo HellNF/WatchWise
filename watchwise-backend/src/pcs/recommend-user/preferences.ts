@@ -12,6 +12,14 @@ const LONG_TERM_LAMBDA = 0.02;
 const SHORT_TERM_WEIGHT = 0.6;
 const LONG_TERM_WEIGHT = 0.4;
 
+const SOURCE_MULTIPLIERS: Record<PreferenceSource, number> = {
+  questionnaire: 1.6,
+  explicit: 1.2,
+  implicit: 1.0,
+  watch: 0.9,
+  feedback: 1.4
+};
+
 export async function buildPreferenceProfile(
   userId: string
 ): Promise<PreferenceProfile> {
@@ -21,7 +29,9 @@ export async function buildPreferenceProfile(
     300
   );
 
+
   const derivedEvents = await derivePreferenceEventsFromWatchHistory(userId, 200);
+
   const allEvents = [...events, ...derivedEvents];
 
   const shortTerm = emptyProfile();
@@ -33,11 +43,14 @@ export async function buildPreferenceProfile(
     const ageDays =
       (now - ev.createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
+    const sourceMultiplier = SOURCE_MULTIPLIERS[ev.source] ?? 1;
+    const baseWeight = ev.weight * sourceMultiplier;
+
     const shortDecay = Math.exp(-SHORT_TERM_LAMBDA * ageDays);
     const longDecay  = Math.exp(-LONG_TERM_LAMBDA  * ageDays);
 
-    const shortContribution = ev.weight * shortDecay;
-    const longContribution  = ev.weight * longDecay;
+    const shortContribution = baseWeight * shortDecay;
+    const longContribution  = baseWeight * longDecay;
 
     addContribution(shortTerm, ev.type, ev.value, shortContribution);
     addContribution(longTerm,  ev.type, ev.value, longContribution);
@@ -70,6 +83,7 @@ function addContribution(
   value: string,
   amount: number
 ) {
+  if (type === "movie") return;
   const bucket =
     type === "genre" ? profile.genres :
     type === "actor" ? profile.actors :
@@ -217,8 +231,11 @@ async function derivePreferenceEventsFromWatchHistory(
 }
 
 function parseTmdbId(movieId: string): number | null {
-  if (!movieId?.startsWith("tmdb:")) return null;
-  const parsed = Number(movieId.replace("tmdb:", ""));
+  if (!movieId) return null;
+  const normalized = movieId.startsWith("tmdb:")
+    ? movieId.replace("tmdb:", "")
+    : movieId;
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
 

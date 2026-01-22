@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
-import { Check, Calendar, ClipboardCheck } from "lucide-react"
+import { MovieQuickActions } from "@/components/movie-quick-actions"
+import { Check, ClipboardCheck, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import {
+  deleteWatchHistory,
   getWatchHistory,
   getMovieDetails,
   type WatchHistoryEntry,
@@ -19,6 +22,7 @@ type SeenMovieCard = {
   poster?: string
   watchedAt?: string
   myRating?: number
+  entryId?: string
 }
 
 const POSTER_BASE = "https://image.tmdb.org/t/p/w500"
@@ -74,6 +78,7 @@ export default function SeenMoviesPage() {
   const [items, setItems] = useState<SeenMovieCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -111,7 +116,8 @@ export default function SeenMoviesPage() {
             year: details?.year,
             poster: toPosterUrl(details?.posterPath),
             watchedAt: entry?.watchedAt,
-            myRating: toTenStar(entry?.rating)
+            myRating: toTenStar(entry?.rating),
+            entryId: entry?.id
           }
         })
 
@@ -145,17 +151,45 @@ export default function SeenMoviesPage() {
               year={movie.year}
               rating={movie.myRating}
               className=""
-              children={<div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <ClipboardCheck className="w-4 h-4" />
-                          <span>{formatRelativeDate(movie.watchedAt)}</span>
-                        </div>}
+              children={
+                <div className="flex items-center gap-1">
+                  <MovieQuickActions movieId={movie.id} showHistory={false} />
+                  <button
+                    type="button"
+                    aria-label="Remove from history"
+                    onClick={async () => {
+                      if (!movie.entryId) return
+                      setRemovingId(movie.entryId)
+                      try {
+                        await deleteWatchHistory(movie.entryId)
+                        setItems((prev) => prev.filter((item) => item.entryId !== movie.entryId))
+                      } catch {
+                        toast.error("Unable to remove from history")
+                      } finally {
+                        setRemovingId(null)
+                      }
+                    }}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-destructive/40 bg-background/70 text-destructive transition hover:border-destructive/70 hover:text-destructive/80"
+                    disabled={removingId === movie.entryId}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              }
+              meta={
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ClipboardCheck className="w-4 h-4" />
+                    <span>{formatRelativeDate(movie.watchedAt)}</span>
+                  </div>
+                </div>
+              }
             />
-            
           </div>
         ))}
       </div>
     )
-  }, [loading, error, items])
+  }, [loading, error, items, removingId])
 
   return (
     <main className="min-h-screen pb-28">

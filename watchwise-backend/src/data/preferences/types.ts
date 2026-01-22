@@ -8,13 +8,15 @@ export type PreferenceType =
   | "energy"
   | "company"
   | "duration"
-  | "novelty";
+  | "novelty"
+  | "movie";
 
 export type PreferenceSource =
   | "questionnaire"
   | "watch"
   | "explicit"
-  | "implicit";
+  | "implicit"
+  | "feedback";
 
 export interface UserPreferenceEvent {
   _id: ObjectId;

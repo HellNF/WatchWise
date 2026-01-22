@@ -5,7 +5,8 @@ import {
   getUserPreferences,
   deletePreferenceEvent,
   deleteRecentPreferencesBySource,
-  insertPreferenceEvents
+  insertPreferenceEvents,
+  deletePreferencesBySource
 } from "./repository";
 import { PreferenceSource, PreferenceType } from "./types";
 
@@ -13,7 +14,8 @@ const ALLOWED_SOURCES: PreferenceSource[] = [
   "questionnaire",
   "watch",
   "explicit",
-  "implicit"
+  "implicit",
+  "feedback"
 ];
 
 const ALLOWED_TYPES: PreferenceType[] = [
@@ -24,7 +26,8 @@ const ALLOWED_TYPES: PreferenceType[] = [
   "energy",
   "company",
   "duration",
-  "novelty"
+  "novelty",
+  "movie"
 ];
 
 function normalizeEventInput(body: any) {
@@ -50,7 +53,16 @@ export async function preferenceRoutes(app: FastifyInstance) {
     "/api/preferences",
     { preHandler: [requireAuth] },
     async (req) => {
-      return getUserPreferences(req.userId!);
+      const rows = await getUserPreferences(req.userId!);
+      return rows.map((row) => ({
+        id: row._id.toString(),
+        userId: row.userId.toString(),
+        type: row.type,
+        value: row.value,
+        weight: row.weight,
+        source: row.source,
+        createdAt: row.createdAt
+      }));
     }
   );
 
@@ -85,13 +97,19 @@ export async function preferenceRoutes(app: FastifyInstance) {
 
       const normalized = events
         .map(normalizeEventInput)
-        .filter((event): event is NonNullable<ReturnType<typeof normalizeEventInput>> => !!event);
+        .filter((event: any): event is NonNullable<ReturnType<typeof normalizeEventInput>> => !!event);
 
       if (!normalized.length) {
         return { ok: false, error: "INVALID_INPUT" };
       }
 
-      const hasQuestionnaire = normalized.some((event) => event.source === "questionnaire");
+      interface NormalizedPreferenceEvent {
+        source: PreferenceSource;
+      }
+
+      const hasQuestionnaire: boolean = normalized.some(
+        (event: NormalizedPreferenceEvent) => event.source === "questionnaire"
+      );
       if (hasQuestionnaire) {
         const since = new Date(Date.now() - 4 * 60 * 60 * 1000);
         await deleteRecentPreferencesBySource(req.userId!, "questionnaire", since);
@@ -108,6 +126,19 @@ export async function preferenceRoutes(app: FastifyInstance) {
     async (req) => {
       const { id } = req.params as any;
       await deletePreferenceEvent(req.userId!, id);
+      return { ok: true };
+    }
+  );
+
+  app.delete(
+    "/api/preferences/source/:source",
+    { preHandler: [requireAuth] },
+    async (req) => {
+      const { source } = req.params as { source: PreferenceSource };
+      if (!ALLOWED_SOURCES.includes(source)) {
+        return { ok: false, error: "INVALID_SOURCE" };
+      }
+      await deletePreferencesBySource(req.userId!, source);
       return { ok: true };
     }
   );

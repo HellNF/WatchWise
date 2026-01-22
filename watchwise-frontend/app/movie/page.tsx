@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import {
   getMovieDetails,
   getMoviesByCategory,
+  postQuestionnairePreferences,
   type MovieDetails,
   type MovieListItem,
   type MoviesCategory,
@@ -204,6 +205,13 @@ export default function MoviePage() {
     setShowQuestionnaire(false)
     markQuestionnaireShown()
     localStorage.setItem("watchwise-preferences", JSON.stringify(prefs))
+    void (async () => {
+      try {
+        await postQuestionnairePreferences(prefs)
+      } catch (error) {
+        console.error("Failed to save questionnaire preferences", error)
+      }
+    })()
   }
 
   const handleQuestionnaireSkip = () => {

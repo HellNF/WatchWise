@@ -15,9 +15,11 @@ import {
   getMovieGenres,
   getPreferences,
   getProfile,
+  deletePreferencesBySource,
   postPreference,
+  createList,
+  patchProfile,
   searchPeople,
-  type PreferenceEventRecord,
   type Profile,
   type UserList,
 } from "@/lib/api"
@@ -45,11 +47,20 @@ const moodOptions = [
   "Romantic",
 ]
 
-const AVATAR_MAP: Record<string, string> = {
-  avatar_01: "/friendly-avatar-illustration.jpg",
-  avatar_02: "/placeholder-user.jpg",
-  avatar_03: "/placeholder.jpg",
-}
+const AVATAR_OPTIONS = [
+  { id: "avatar_01", src: "/avatar_1.png" },
+  { id: "avatar_02", src: "/avatar_2.png" },
+  { id: "avatar_03", src: "/avatar_3.png" },
+  { id: "avatar_04", src: "/avatar_4.png" },
+  { id: "avatar_05", src: "/avatar_5.png" },
+  { id: "avatar_06", src: "/avatar_6.png" },
+  { id: "avatar_07", src: "/avatar_7.png" },
+  { id: "avatar_08", src: "/Avatar_8.png" },
+  { id: "avatar_09", src: "/Avatar_9.png" },
+  { id: "avatar_10", src: "/Avatar_10.png" },
+  { id: "avatar_11", src: "/Avatar_11.png" },
+  { id: "avatar_12", src: "/Avatar_12.png" },
+]
 
 const TMDB_PROFILE_BASE = "https://image.tmdb.org/t/p/w185"
 
@@ -200,7 +211,8 @@ function ListCard({ list }: { list: UserList }) {
   const Icon = icon
 
   return (
-    <div
+    <Link
+      href={`/lists?listId=${list.id}`}
       className={cn(
         "relative overflow-hidden rounded-2xl border border-border/60",
         "bg-background/60 px-4 py-4 shadow-sm transition",
@@ -220,7 +232,7 @@ function ListCard({ list }: { list: UserList }) {
       </div>
 
       <div className="pointer-events-none absolute -inset-6 opacity-0 blur-2xl transition-opacity duration-300 hover:opacity-100 bg-primary/10" />
-    </div>
+    </Link>
   )
 }
 
@@ -248,6 +260,10 @@ export default function ProfilePage() {
     directors: string[]
     weight: number
   } | null>(null)
+  const [newListName, setNewListName] = useState("")
+  const [creatingList, setCreatingList] = useState(false)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+  const [savingAvatar, setSavingAvatar] = useState(false)
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -280,11 +296,12 @@ export default function ProfilePage() {
 
         if (prefResult.status === "fulfilled") {
           const prefs = prefResult.value
-          const genres = prefs.filter((p) => p.type === "genre").map((p) => p.value)
-          const moods = prefs.filter((p) => p.type === "mood").map((p) => p.value)
-          const actorNames = prefs.filter((p) => p.type === "actor").map((p) => p.value)
-          const directorNames = prefs.filter((p) => p.type === "director").map((p) => p.value)
-          const weight = prefs.find((p) => typeof p.weight === "number")?.weight ?? 0.8
+          const explicitPrefs = prefs.filter((p) => (p.source ?? "explicit") === "explicit")
+          const genres = explicitPrefs.filter((p) => p.type === "genre").map((p) => p.value)
+          const moods = explicitPrefs.filter((p) => p.type === "mood").map((p) => p.value)
+          const actorNames = explicitPrefs.filter((p) => p.type === "actor").map((p) => p.value)
+          const directorNames = explicitPrefs.filter((p) => p.type === "director").map((p) => p.value)
+          const weight = explicitPrefs.find((p) => typeof p.weight === "number")?.weight ?? 0.8
 
           setSelectedGenres([...new Set(genres)])
           setSelectedMoods([...new Set(moods)])
@@ -479,18 +496,30 @@ export default function ProfilePage() {
       return list.includes(event.value.toLowerCase()) && !initialList.includes(event.value.toLowerCase())
     })
 
+    const currentSets = {
+      genre: new Set(normalize(current.genres)),
+      mood: new Set(normalize(current.moods)),
+      actor: new Set(normalize(current.actors)),
+      director: new Set(normalize(current.directors)),
+    }
+
     setSaving(true)
     try {
-      const payload = toAdd.length ? toAdd : events
-      await Promise.all(payload.map((event) => postPreference({ ...event, weight })))
+      const payload = events
+      await deletePreferencesBySource("explicit")
+      await Promise.all(
+        payload.map((event) => postPreference({ ...event, weight, source: "explicit" }))
+      )
       setMessage("Preferences saved.")
       toast.success("Preferences saved")
+      const refreshed = await getPreferences()
+      const explicitPrefs = refreshed.filter((p) => (p.source ?? "explicit") === "explicit")
       setInitialPrefs({
-        genres: current.genres,
-        moods: current.moods,
-        actors: current.actors,
-        directors: current.directors,
-        weight: current.weight,
+        genres: [...new Set(explicitPrefs.filter((p) => p.type === "genre").map((p) => p.value))],
+        moods: [...new Set(explicitPrefs.filter((p) => p.type === "mood").map((p) => p.value))],
+        actors: [...new Set(explicitPrefs.filter((p) => p.type === "actor").map((p) => p.value))],
+        directors: [...new Set(explicitPrefs.filter((p) => p.type === "director").map((p) => p.value))],
+        weight,
       })
     } catch {
       setMessage("Failed to save preferences.")
@@ -501,7 +530,7 @@ export default function ProfilePage() {
   }
 
   const avatarSrc = profile?.avatar
-    ? AVATAR_MAP[profile.avatar] ?? "/placeholder-user.jpg"
+    ? AVATAR_OPTIONS.find((option) => option.id === profile.avatar)?.src ?? "/placeholder-user.jpg"
     : "/placeholder-user.jpg"
 
   const initials = profile?.username
@@ -528,7 +557,7 @@ export default function ProfilePage() {
   })()
 
   return (
-    <main className="min-h-screen pb-28">
+    <main className="min-h-screen pb-28 text-base md:text-lg">
       <Header />
 
       {/* Background accents */}
@@ -551,8 +580,8 @@ export default function ProfilePage() {
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <p className="text-sm text-muted-foreground">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <p className="text-base text-muted-foreground">
                     Set your tastes so recommendations feel more accurate.
                   </p>
                 </div>
@@ -570,7 +599,7 @@ export default function ProfilePage() {
               </div>
 
               {message && (
-                <p className="mt-2 text-xs text-muted-foreground">{message}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
               )}
             </div>
           </div>
@@ -591,9 +620,14 @@ export default function ProfilePage() {
                           {initials}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute bottom-0 right-0 p-2 bg-primary rounded-full ring-4 ring-background shadow-md">
-                        <Settings className="w-4 h-4 text-primary-foreground" />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAvatarPickerOpen(true)}
+                        className="absolute bottom-0 right-0 p-2 bg-primary rounded-full ring-4 ring-background shadow-md transition hover:scale-105"
+                        aria-label="Change avatar"
+                      >
+                        <Settings className="w-5 h-5 text-primary-foreground" />
+                      </button>
                     </div>
 
                     <div className="space-y-1">
@@ -626,25 +660,68 @@ export default function ProfilePage() {
 
                     {/* Sub-hero action hint (keeps content, adds liveliness) */}
                     <div className="mt-2 rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-left w-full max-w-md">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Choose genres, moods, and people so WatchWise can tailor better picks.
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+              
+              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    Quick actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3 sm:grid-cols-2">
+                  <Button asChild variant="outline" className="justify-start ">
+                    <Link href="/seen">
+                      <Film className="size-5 mr-2" />
+                      Watch history
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="justify-start">
+                    <Link href="/questionnaire">
+                      <Laugh className="size-5 mr-2" />
+                      Edit daily questionnaire
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Groups
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Manage groups and start sessions with your friends.
+                  </p>
+                  <Button asChild variant="outline" className="justify-start">
+                    <Link href="/groups">
+                      <Users className="size-5 mr-2" />
+                      Go to Groups
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
 
               {/* Lists */}
               <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-primary flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <BarChart3 className="h-7 w-7" />
                     Your lists
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {listsError ? (
-                    <p className="text-sm text-muted-foreground">{listsError}</p>
+                    <p className="text-base text-muted-foreground">{listsError}</p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
                       {lists.map((list) => (
@@ -654,47 +731,65 @@ export default function ProfilePage() {
                   )}
                 </CardContent>
               </Card>
-
               <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-primary flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Quick actions
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <SlidersHorizontal className="h-5 w-5" />
+                    Create a list
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-2">
-                  <Button asChild variant="outline" className="justify-start">
-                    <Link href="/seen">
-                      <Film className="h-4 w-4 mr-2" />
-                      Watch history
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="justify-start">
-                    <Link href="/questionnaire">
-                      <Laugh className="h-4 w-4 mr-2" />
-                      Edit daily questionnaire
-                    </Link>
+                <CardContent className="space-y-3">
+                  <Input
+                    value={newListName}
+                    onChange={(event) => setNewListName(event.target.value)}
+                    placeholder="New list name"
+                  />
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={!newListName.trim() || creatingList}
+                    onClick={async () => {
+                      const name = newListName.trim()
+                      if (!name) return
+                      setCreatingList(true)
+                      try {
+                        const created = await createList(name)
+                        setLists((prev) => [created, ...prev])
+                        setNewListName("")
+                        toast.success("List created")
+                      } catch {
+                        toast.error("Failed to create list")
+                      } finally {
+                        setCreatingList(false)
+                      }
+                    }}
+                  >
+                    {creatingList ? "Creating..." : "Create list"}
                   </Button>
                 </CardContent>
               </Card>
+              
 
               {/* Sign out (kept) */}
               <Button
                 variant="outline"
                 className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-5 h-5 mr-2" />
                 Sign Out
               </Button>
             </div>
 
             {/* RIGHT COLUMN: People + Preferences */}
             <div className="space-y-6">
+              
+              
+
               {/* People */}
               <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-primary flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <Users className="h-5 w-5" />
                     Favorite people
                   </CardTitle>
                 </CardHeader>
@@ -704,7 +799,7 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">Actors</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Add the faces you love seeing on screen.
                       </p>
                     </div>
@@ -758,7 +853,7 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">Directors</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Help WatchWise understand your preferred style.
                       </p>
                     </div>
@@ -813,8 +908,8 @@ export default function ProfilePage() {
               {/* Preferences */}
               <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-primary flex items-center gap-2">
-                    <SlidersHorizontal className="h-4 w-4" />
+                  <CardTitle className="text-lg text-primary flex items-center gap-2">
+                    <SlidersHorizontal className="h-5 w-5" />
                     Preferences
                   </CardTitle>
                 </CardHeader>
@@ -824,7 +919,7 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">Favorite genres</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Pick more genres for a richer profile.
                       </p>
                     </div>
@@ -848,7 +943,7 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">Current mood</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Mood influences the style of suggestions.
                       </p>
                     </div>
@@ -884,7 +979,7 @@ export default function ProfilePage() {
                       onValueChange={(value) => setWeight(value[0] / 100)}
                     />
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span>More discovery</span>
                       <span>More personalization</span>
                     </div>
@@ -892,7 +987,7 @@ export default function ProfilePage() {
 
                   {/* Help text */}
                   <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Tip: increase intensity for more targeted picks. Lower it to explore more broadly.
                     </p>
                   </div>
@@ -907,6 +1002,69 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
+
+      {avatarPickerOpen && (
+        <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-3xl border border-border/60 bg-background/90 p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Choose your avatar</h2>
+                <p className="text-sm text-muted-foreground">Pick one to update your profile.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAvatarPickerOpen(false)}
+                className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {AVATAR_OPTIONS.map((option) => {
+                const active = profile?.avatar === option.id
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={async () => {
+                      setSavingAvatar(true)
+                      try {
+                        await patchProfile({ avatar: option.id })
+                        setProfile((prev) => (prev ? { ...prev, avatar: option.id } : prev))
+                        toast.success("Avatar updated")
+                        setAvatarPickerOpen(false)
+                      } catch {
+                        toast.error("Failed to update avatar")
+                      } finally {
+                        setSavingAvatar(false)
+                      }
+                    }}
+                    disabled={savingAvatar}
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl border p-2 transition",
+                      active
+                        ? "border-primary/60 bg-primary/10"
+                        : "border-border/60 hover:border-primary/40 hover:bg-secondary/40"
+                    )}
+                  >
+                    <img
+                      src={option.src}
+                      alt={option.id}
+                      className="h-20 w-20 rounded-full object-cover mx-auto"
+                    />
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 text-sm text-muted-foreground">
+              {savingAvatar ? "Saving avatar..." : ""}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

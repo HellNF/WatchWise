@@ -31,6 +31,9 @@ export async function enrichCandidates(
           genres: details.genres,
           director: details.director,
           actors: details.actors,
+          duration: details.duration,
+          productionCountries: details.productionCountries,
+          originalLanguage: details.originalLanguage,
         };
       } catch (err) {
         // Fail-safe: return base candidate if enrichment fails

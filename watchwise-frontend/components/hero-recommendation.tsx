@@ -403,14 +403,7 @@ function BottomSection({
       </div>
 
       <div className="flex items-center gap-3 flex-wrap justify-center">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-12 w-12 rounded-full border-border/40 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 bg-transparent transition-all duration-300"
-        >
-          <ThumbsDown className="h-5 w-5" />
-          <span className="sr-only">Not interested</span>
-        </Button>
+        
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -483,15 +476,7 @@ function BottomSection({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-12 w-12 rounded-full  hover:scale-110 border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary bg-transparent gap-2 transition-all duration-300"
-          
-        >
-          <ThumbsUp className="h-5 w-5" style={{ fill: `color-mix(in oklch, ${primaryColor} 20%, transparent)` }} />
-          <span className="sr-only">Like</span>
-        </Button>
+        
       </div>
 
       <div className="flex flex-col items-center gap-4 lg:hidden mt-4">

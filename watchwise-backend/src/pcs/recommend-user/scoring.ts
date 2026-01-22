@@ -11,6 +11,14 @@ export function scoreMovies(
   preferences: PreferenceProfile
 ): ScoredMovie[] {
 
+  const preferredGenres = new Set(
+    (context.preferredGenres ?? []).map((genre) => genre.toLowerCase())
+  );
+  const excludedGenres = new Set(
+    (context.excludedGenres ?? []).map((genre) => genre.toLowerCase())
+  );
+  const maxDuration = context.maxDuration;
+
   return candidates.map(movie => {
     let score = 0;
     const reasons: string[] = [];
@@ -22,6 +30,18 @@ export function scoreMovies(
     /* ---- genre affinity ---- */
     if (movie.genres) {
       for (const g of movie.genres) {
+        const normalizedGenre = g.toLowerCase();
+        if (excludedGenres.has(normalizedGenre)) {
+          score -= 0.6;
+          reasons.push(`Avoids your excluded genre: ${g}`);
+          continue;
+        }
+
+        if (preferredGenres.has(normalizedGenre)) {
+          score += 0.4;
+          reasons.push(`Matches your current genre pick: ${g}`);
+        }
+
         const w = preferences.genres[g];
         if (w) {
           score += w * PCS_CONFIG.weights.genre;
@@ -44,6 +64,15 @@ export function scoreMovies(
           score += w * PCS_CONFIG.weights.actor;
           reasons.push(`Features ${a}, an actor you like`);
         }
+      }
+    }
+
+    /* ---- duration preference ---- */
+    if (typeof maxDuration === "number" && movie.duration) {
+      if (movie.duration > maxDuration) {
+        const overflow = Math.min(1, (movie.duration - maxDuration) / maxDuration);
+        score -= 0.6 * overflow;
+        reasons.push(`Exceeds your time limit (${movie.duration} min)`);
       }
     }
 
