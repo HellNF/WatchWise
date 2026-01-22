@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { MoodQuestionnaire, type UserPreferences } from "@/components/mood-questionnaire"
 import { PodiumRow, type PodiumItem } from "@/components/podium-row"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   getMovieDetails,
   getMoviesByCategory,
@@ -17,6 +18,16 @@ import {
   type MovieListItem,
   type MoviesCategory,
 } from "@/lib/api"
+import { 
+  Loader2, 
+  Flame, 
+  Ticket, 
+  Star, 
+  TrendingUp, 
+  Calendar, 
+  Film 
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 function shouldShowQuestionnaire(): boolean {
   if (typeof window === "undefined") return false
@@ -32,29 +43,45 @@ function markQuestionnaireShown(): void {
   localStorage.setItem("watchwise-last-visit", new Date().toDateString())
 }
 
+// Enhanced config with Icons and Colors
 const categoryConfig: Record<
   MoviesCategory,
-  { label: string; reason: string }
+  { label: string; reason: string; icon: any; color: string; description: string }
 > = {
   popular: {
     label: "Popular Movies",
     reason: "Popular right now",
+    icon: Flame,
+    color: "text-orange-400",
+    description: "The most watched movies this week."
   },
   now_playing: {
     label: "Now Playing",
     reason: "In theaters now",
+    icon: Ticket,
+    color: "text-emerald-400",
+    description: "Catch these on the big screen."
   },
   top_rated: {
     label: "Top Rated",
     reason: "Highest rated",
+    icon: Star,
+    color: "text-amber-400",
+    description: "Critically acclaimed masterpieces."
   },
   trending: {
     label: "Trending",
     reason: "Trending now",
+    icon: TrendingUp,
+    color: "text-violet-400",
+    description: "Viral hits and rising stars."
   },
   upcoming: {
     label: "Upcoming",
     reason: "Coming soon",
+    icon: Calendar,
+    color: "text-blue-400",
+    description: "Add these to your watchlist soon."
   },
 }
 
@@ -66,6 +93,7 @@ export default function MoviePage() {
       ? (rawCategory as MoviesCategory)
       : "popular"
   const category = categoryConfig[categoryKey]
+  const CategoryIcon = category.icon
 
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -221,11 +249,10 @@ export default function MoviePage() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen pb-28">
+      <main className="min-h-screen bg-zinc-950 pb-28">
         <Header />
-        <div>
-          <HeroRecommendation movie={heroMovie} />
-          <AlternativeMovies movies={alternatives} />
+        <div className="container mx-auto px-4 py-8">
+           <div className="h-96 w-full animate-pulse rounded-3xl bg-white/5" />
         </div>
         <BottomNav />
       </main>
@@ -233,52 +260,112 @@ export default function MoviePage() {
   }
 
   return (
-    <main className="min-h-screen pb-28">
+    <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
       <Header />
-      <div>
-        <HeroRecommendation movie={heroMovie} />
-        <PodiumRow title={`${category.label} Podium`} items={podiumItems} />
-        <AlternativeMovies movies={alternatives} />
-        <div className="flex justify-center py-6">
-          {hasMore ? (
-            <Button
-              onClick={() => {
-                if (!loadingMore) {
-                  const nextPage = page + 1
-                  setPage(nextPage)
-                  void (async () => {
-                    try {
-                      const list = await getMoviesByCategory(categoryKey, {
-                        limit: 20,
-                        page: nextPage,
-                      })
-                      setHasMore(list.length >= 20)
-                      setAllMovies((prev) => {
-                        const merged = [...prev, ...list]
-                        const seen = new Set<string>()
-                        return merged.filter((item) => {
-                          const id = item.movieId
-                          if (seen.has(id)) return false
-                          seen.add(id)
-                          return true
-                        })
-                      })
-                    } catch (error) {
-                      console.error("Failed to load more movies", error)
-                    }
-                  })()
-                }
-              }}
-              disabled={loadingMore}
-              variant="outline"
-            >
-              {loadingMore ? "Loading..." : "Load more"}
-            </Button>
-          ) : (
-            <p className="text-sm text-muted-foreground">No more results</p>
+
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
+
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+        
+        {/* Page Header */}
+        <div className="mb-10 mt-2 flex flex-col gap-4">
+          <Badge 
+            variant="outline" 
+            className="w-fit border-white/10 bg-white/5 text-zinc-400 uppercase tracking-widest text-[10px] gap-2 pl-2"
+          >
+            <Film className="h-3 w-3" />
+            Discover
+          </Badge>
+          
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white flex items-center gap-3">
+              <CategoryIcon className={cn("h-10 w-10", category.color)} />
+              {category.label}
+            </h1>
+            <p className="text-zinc-400 mt-2 text-lg">
+              {category.description}
+            </p>
+          </div>
+        </div>
+
+        {/* Content Flow */}
+        <div className="space-y-16">
+          
+          {/* Hero Section */}
+          <section>
+            <div className="rounded-3xl border border-white/10 bg-zinc-900/40 backdrop-blur-sm p-1">
+               <HeroRecommendation movie={heroMovie} />
+            </div>
+          </section>
+
+          {/* Podium Section */}
+          {podiumItems.length > 0 && (
+            <section className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 via-transparent to-amber-500/5 blur-3xl pointer-events-none" />
+              <PodiumRow title={`Top 10 ${category.label}`} items={podiumItems} />
+            </section>
           )}
+
+          {/* Grid Section */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-1 bg-gradient-to-b from-violet-500 to-transparent rounded-full" />
+              <h2 className="text-2xl font-bold text-white">More to Explore</h2>
+            </div>
+            
+            <AlternativeMovies movies={alternatives} />
+            
+            <div className="flex justify-center pt-12">
+              {hasMore ? (
+                <Button
+                  onClick={() => {
+                    if (!loadingMore) {
+                      const nextPage = page + 1
+                      setPage(nextPage)
+                      void (async () => {
+                        try {
+                          const list = await getMoviesByCategory(categoryKey, {
+                            limit: 20,
+                            page: nextPage,
+                          })
+                          setHasMore(list.length >= 20)
+                          setAllMovies((prev) => {
+                            const merged = [...prev, ...list]
+                            const seen = new Set<string>()
+                            return merged.filter((item) => {
+                              const id = item.movieId
+                              if (seen.has(id)) return false
+                              seen.add(id)
+                              return true
+                            })
+                          })
+                        } catch (error) {
+                          console.error("Failed to load more movies", error)
+                        }
+                      })()
+                    }
+                  }}
+                  disabled={loadingMore}
+                  variant="outline"
+                  className="rounded-full h-12 px-8 border-white/10 bg-zinc-900/60 hover:bg-white/10 hover:text-white transition-all shadow-lg"
+                >
+                  {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {loadingMore ? "Loading..." : "Load More Movies"}
+                </Button>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-zinc-500 py-8">
+                  <div className="h-1 w-12 bg-zinc-800 rounded-full" />
+                  <p className="text-sm">You've reached the end of the list</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
+      
       <BottomNav />
 
       {showQuestionnaire && (

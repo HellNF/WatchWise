@@ -5,6 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Film } from "lucide-react"
 import Link from "next/link"
+import { LogoDisconnectedSpark } from "@/components/LogoDisconnectedSpark"
+import { LogoMagicStroke } from "./LogoMagicStroke"
+
 
 export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -21,8 +24,8 @@ export function Header() {
       <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-16 max-w-10/12 mx-auto">
         <Link href="/" className="flex items-center gap-2">
           <div className="relative">
-            <Film className="h-7 w-7 text-primary" />
-            <div className="absolute inset-0 blur-lg bg-primary/30" />
+            <LogoMagicStroke className="h-10 w-auto" />
+            
           </div>
           <span className="text-xl font-semibold tracking-tight">WatchWise</span>
         </Link>
@@ -51,11 +54,12 @@ export function Header() {
           </div>
 
           <div className="relative group">
-            <Link href="/tv" className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors">
+            <Link  href="/tv" className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors disabled:opacity-50">
               TV Series
             </Link>
             <div className="absolute left-0 top-full pt-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition">
               <div className="min-w-[200px] rounded-md border border-border/60 bg-background/95 backdrop-blur shadow-lg p-2">
+                {/*
                 <Link href="/tv?category=popular" className="block rounded-sm px-3 py-2 text-sm text-foreground/90 hover:bg-accent hover:text-accent-foreground">
                   Popular series
                 </Link>
@@ -68,6 +72,10 @@ export function Header() {
                 <Link href="/tv?category=top_rated" className="block rounded-sm px-3 py-2 text-sm text-foreground/90 hover:bg-accent hover:text-accent-foreground">
                   Top rated
                 </Link>
+  */}
+                <span className="block rounded-sm px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+                  Coming soon...
+                </span>
               </div>
             </div>
           </div>

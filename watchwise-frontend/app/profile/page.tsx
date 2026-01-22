@@ -33,9 +33,13 @@ import {
   Laugh,
   Film,
   Heart,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Save,
+  Loader2,
+  Plus
 } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const moodOptions = [
   "Chill",
@@ -70,10 +74,6 @@ type PersonCard = {
   image?: string
 }
 
-function cn(...classes: Array<string | false | undefined | null>) {
-  return classes.filter(Boolean).join(" ")
-}
-
 function ChoicePill({
   active,
   onClick,
@@ -88,22 +88,14 @@ function ChoicePill({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs sm:text-sm",
-        "transition-all duration-200 select-none",
-        "border shadow-sm",
+        "group relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 select-none",
+        "border shadow-sm active:scale-95",
         active
-          ? "bg-primary/20 border-primary/40 text-foreground shadow-primary/10"
-          : "bg-background/50 border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/35 hover:border-primary/20",
-        "hover:-translate-y-px active:translate-y-0"
+          ? "bg-violet-600/20 border-violet-500/50 text-violet-100 shadow-[0_0_15px_rgba(124,58,237,0.2)]"
+          : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white hover:border-white/20"
       )}
     >
-      <span
-        className={cn(
-          "absolute inset-0 rounded-full opacity-0 blur-xl transition-opacity duration-300",
-          active ? "opacity-100 bg-primary/15" : "group-hover:opacity-60 bg-primary/10"
-        )}
-      />
-      <span className="relative">{children}</span>
+      {children}
     </button>
   )
 }
@@ -122,35 +114,34 @@ function SuggestionDropdown({
   if (!visible) return null
 
   return (
-    <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-2 shadow-lg backdrop-blur">
+    <div className="mt-2 rounded-xl border border-white/10 bg-zinc-900/95 p-1 shadow-xl backdrop-blur-md z-50 absolute w-full max-h-60 overflow-y-auto custom-scrollbar">
       {loading ? (
-        <p className="text-xs text-muted-foreground px-2 py-2">Loading...</p>
+        <div className="flex items-center gap-2 p-3 text-sm text-zinc-500">
+           <Loader2 className="h-4 w-4 animate-spin"/> Searching...
+        </div>
       ) : items.length ? (
         <div className="grid gap-1">
           {items.map((s) => (
             <button
               key={`s-${s.id ?? s.name}`}
               type="button"
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-2 py-2 text-left",
-                "transition hover:bg-secondary/40"
-              )}
+              className="flex items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-white/10 transition-colors group"
               onClick={() => onPick(s.name)}
             >
               <img
                 src={s.image || "/placeholder-user.jpg"}
                 alt={s.name}
-                className="h-8 w-8 rounded-full object-cover border border-border/60"
+                className="h-8 w-8 rounded-full object-cover border border-white/10"
               />
               <div className="min-w-0">
-                <p className="text-sm font-medium leading-4 truncate">{s.name}</p>
-                <p className="text-xs text-muted-foreground leading-4">Select</p>
+                <p className="text-sm font-medium leading-tight truncate group-hover:text-violet-300 transition-colors">{s.name}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Select</p>
               </div>
             </button>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground px-2 py-2">No results.</p>
+        <p className="p-3 text-sm text-zinc-500">No results found.</p>
       )}
     </div>
   )
@@ -166,40 +157,29 @@ function PersonGrid({
   if (!items.length) return null
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
       {items.map((p) => (
         <div
           key={p.name}
-          className={cn(
-            "group relative overflow-hidden rounded-2xl border border-border/60",
-            "bg-background/60 p-3 shadow-sm transition",
-            "hover:-translate-y-1 hover:border-primary/30 hover:bg-primary/5"
-          )}
+          className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-2 pr-8 shadow-sm transition hover:bg-white/[0.05] hover:border-white/10"
         >
-          <div className="flex flex-col items-center gap-2">
-            <img
-              src={p.image || "/placeholder-user.jpg"}
-              alt={p.name}
-              className="h-14 w-14 rounded-full object-cover border border-border/60"
-            />
-            <span className="text-xs text-center text-muted-foreground line-clamp-1">
-              {p.name}
-            </span>
-          </div>
+          <img
+            src={p.image || "/placeholder-user.jpg"}
+            alt={p.name}
+            className="h-10 w-10 rounded-full object-cover border border-white/10"
+          />
+          <span className="text-xs font-medium text-zinc-300 line-clamp-2 leading-tight">
+            {p.name}
+          </span>
 
           <button
             type="button"
             onClick={() => onRemove(p.name)}
-            className={cn(
-              "absolute right-2 top-2 rounded-full bg-background/80 p-1 text-muted-foreground",
-              "opacity-0 transition group-hover:opacity-100 hover:text-foreground"
-            )}
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400 transition-all"
             aria-label={`Remove ${p.name}`}
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
-
-          <div className="pointer-events-none absolute -inset-6 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100 bg-primary/10" />
         </div>
       ))}
     </div>
@@ -213,25 +193,19 @@ function ListCard({ list }: { list: UserList }) {
   return (
     <Link
       href={`/lists?listId=${list.id}`}
-      className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/60",
-        "bg-background/60 px-4 py-4 shadow-sm transition",
-        "hover:-translate-y-1 hover:border-primary/30 hover:bg-primary/5"
-      )}
+      className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-4 shadow-sm transition-all hover:bg-white/[0.05] hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5"
     >
-      <div className="flex items-start gap-3">
-        <div className="rounded-xl border border-border/60 bg-background/60 p-2">
-          <Icon className="h-4 w-4 text-primary" />
+      <div className="flex items-center gap-4">
+        <div className="rounded-xl bg-violet-500/10 p-2.5 text-violet-400 group-hover:bg-violet-500/20 group-hover:text-violet-300 transition-colors">
+          <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold truncate">{list.name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-semibold truncate text-zinc-200 group-hover:text-white transition-colors">{list.name}</p>
+          <p className="text-xs text-zinc-500">
             {list.isDefault ? "Default list" : "Custom list"}
           </p>
         </div>
       </div>
-
-      <div className="pointer-events-none absolute -inset-6 opacity-0 blur-2xl transition-opacity duration-300 hover:opacity-100 bg-primary/10" />
     </Link>
   )
 }
@@ -265,6 +239,7 @@ export default function ProfilePage() {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [savingAvatar, setSavingAvatar] = useState(false)
 
+  // ... (Data fetching logic remains the same)
   useEffect(() => {
     const fetchGenres = async () => {
       try {
@@ -455,54 +430,6 @@ export default function ProfilePage() {
       return
     }
 
-    const current = {
-      genres: selectedGenres,
-      moods: selectedMoods,
-      actors: actors.map((p) => p.name),
-      directors: directors.map((p) => p.name),
-      weight,
-    }
-
-    const initial = initialPrefs ?? {
-      genres: [],
-      moods: [],
-      actors: [],
-      directors: [],
-      weight: 0.8,
-    }
-
-    const normalize = (values: string[]) =>
-      [...new Set(values.map((v) => v.trim().toLowerCase()))].sort()
-
-    const toAdd = events.filter((event) => {
-      const list =
-        event.type === "genre"
-          ? normalize(current.genres)
-          : event.type === "mood"
-            ? normalize(current.moods)
-            : event.type === "actor"
-              ? normalize(current.actors)
-              : normalize(current.directors)
-
-      const initialList =
-        event.type === "genre"
-          ? normalize(initial.genres)
-          : event.type === "mood"
-            ? normalize(initial.moods)
-            : event.type === "actor"
-              ? normalize(initial.actors)
-              : normalize(initial.directors)
-
-      return list.includes(event.value.toLowerCase()) && !initialList.includes(event.value.toLowerCase())
-    })
-
-    const currentSets = {
-      genre: new Set(normalize(current.genres)),
-      mood: new Set(normalize(current.moods)),
-      actor: new Set(normalize(current.actors)),
-      director: new Set(normalize(current.directors)),
-    }
-
     setSaving(true)
     try {
       const payload = events
@@ -512,14 +439,14 @@ export default function ProfilePage() {
       )
       setMessage("Preferences saved.")
       toast.success("Preferences saved")
-      const refreshed = await getPreferences()
-      const explicitPrefs = refreshed.filter((p) => (p.source ?? "explicit") === "explicit")
+      
+      // Update initial state to reflect saved
       setInitialPrefs({
-        genres: [...new Set(explicitPrefs.filter((p) => p.type === "genre").map((p) => p.value))],
-        moods: [...new Set(explicitPrefs.filter((p) => p.type === "mood").map((p) => p.value))],
-        actors: [...new Set(explicitPrefs.filter((p) => p.type === "actor").map((p) => p.value))],
-        directors: [...new Set(explicitPrefs.filter((p) => p.type === "director").map((p) => p.value))],
-        weight,
+        genres: selectedGenres,
+        moods: selectedMoods,
+        actors: actors.map(p => p.name),
+        directors: directors.map(p => p.name),
+        weight
       })
     } catch {
       setMessage("Failed to save preferences.")
@@ -557,510 +484,369 @@ export default function ProfilePage() {
   })()
 
   return (
-    <main className="min-h-screen pb-28 text-base md:text-lg">
+    <main className="min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
       <Header />
 
-      {/* Background accents */}
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-0 opacity-45">
-          <div className="absolute inset-0 bg-[radial-gradient(700px_circle_at_0%_0%,rgba(99,102,241,0.10),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(650px_circle_at_100%_15%,rgba(236,72,153,0.10),transparent_55%)]" />
-        </div>
-        <div className="pointer-events-none absolute -top-24 right-0 h-80 w-80 rounded-full bg-primary/15 blur-[150px]" />
-        <div className="pointer-events-none absolute -bottom-24 left-0 h-80 w-80 rounded-full bg-fuchsia-500/10 blur-[160px]" />
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
 
-        <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6 relative">
-          {/* Sticky actions (web-friendly) */}
-          <div className="sticky top-16 z-30 -mx-1">
-            <div
-              className={cn(
-                "rounded-2xl border border-border/60 bg-background/70 backdrop-blur",
-                "shadow-sm px-3 py-3"
-              )}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <p className="text-base text-muted-foreground">
-                    Set your tastes so recommendations feel more accurate.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    className="min-w-45"
-                    onClick={handleSavePreferences}
-                    disabled={saving || !hasChanges}
-                  >
-                    {saving ? "Saving..." : hasChanges ? "Save changes" : "No changes"}
-                  </Button>
-                </div>
+      <div className="container relative z-10 mx-auto px-4 py-8 max-w-6xl space-y-6">
+        
+        {/* Sticky Action Bar */}
+        <div className="sticky top-20 z-40">
+          <div className="rounded-2xl border border-white/10 bg-zinc-900/80 backdrop-blur-xl shadow-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-violet-500/10 text-violet-400">
+                <Sparkles className="h-4 w-4" />
               </div>
-
-              {message && (
-                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-              )}
+              <p className="text-sm text-zinc-300">
+                Tweak your taste profile for better recommendations.
+              </p>
             </div>
-          </div>
 
-          {/* Layout web: 2 colonne su desktop */}
-          <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr]">
-            {/* LEFT COLUMN: Profile + Lists */}
-            <div className="space-y-6">
-              {/* Hero profile */}
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-xl backdrop-blur transition hover:shadow-2xl hover:border-primary/40">
-                <CardContent className="pt-8 pb-6">
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="relative">
-                      <div className="absolute inset-0 rounded-full bg-linear-to-br from-primary/30 via-fuchsia-400/30 to-indigo-400/30 blur-xl" />
-                      <Avatar className="relative w-28 h-28 border-4 border-background shadow-xl transition-transform duration-500 hover:scale-[1.03]">
-                        <AvatarImage src={avatarSrc} />
-                        <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <button
-                        type="button"
-                        onClick={() => setAvatarPickerOpen(true)}
-                        className="absolute bottom-0 right-0 p-2 bg-primary rounded-full ring-4 ring-background shadow-md transition hover:scale-105"
-                        aria-label="Change avatar"
-                      >
-                        <Settings className="w-5 h-5 text-primary-foreground" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h1 className="text-3xl font-bold text-foreground">
-                        {profile?.username ?? "WatchWise User"}
-                      </h1>
-                      <p className="text-sm text-muted-foreground">
-                        {profile?.email ?? "Movie enthusiast"}
-                      </p>
-
-                      <div className="mt-3 flex flex-wrap justify-center gap-2">
-                        {selectedGenres.slice(0, 3).map((g) => (
-                          <Badge
-                            key={g}
-                            className="px-3 py-1 bg-primary/15 text-primary border border-primary/30"
-                          >
-                            {g}
-                          </Badge>
-                        ))}
-                        {selectedMoods.slice(0, 2).map((m) => (
-                          <Badge
-                            key={m}
-                            className="px-3 py-1 bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/30"
-                          >
-                            {m}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Sub-hero action hint (keeps content, adds liveliness) */}
-                    <div className="mt-2 rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-left w-full max-w-md">
-                      <p className="text-sm text-muted-foreground">
-                        Choose genres, moods, and people so WatchWise can tailor better picks.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    Quick actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-2">
-                  <Button asChild variant="outline" className="justify-start ">
-                    <Link href="/seen">
-                      <Film className="size-5 mr-2" />
-                      Watch history
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="justify-start">
-                    <Link href="/questionnaire">
-                      <Laugh className="size-5 mr-2" />
-                      Edit daily questionnaire
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Groups
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Manage groups and start sessions with your friends.
-                  </p>
-                  <Button asChild variant="outline" className="justify-start">
-                    <Link href="/groups">
-                      <Users className="size-5 mr-2" />
-                      Go to Groups
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Lists */}
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <BarChart3 className="h-7 w-7" />
-                    Your lists
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {listsError ? (
-                    <p className="text-base text-muted-foreground">{listsError}</p>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {lists.map((list) => (
-                        <ListCard key={list.id} list={list} />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <SlidersHorizontal className="h-5 w-5" />
-                    Create a list
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Input
-                    value={newListName}
-                    onChange={(event) => setNewListName(event.target.value)}
-                    placeholder="New list name"
-                  />
-                  <Button
-                    type="button"
-                    className="w-full"
-                    disabled={!newListName.trim() || creatingList}
-                    onClick={async () => {
-                      const name = newListName.trim()
-                      if (!name) return
-                      setCreatingList(true)
-                      try {
-                        const created = await createList(name)
-                        setLists((prev) => [created, ...prev])
-                        setNewListName("")
-                        toast.success("List created")
-                      } catch {
-                        toast.error("Failed to create list")
-                      } finally {
-                        setCreatingList(false)
-                      }
-                    }}
-                  >
-                    {creatingList ? "Creating..." : "Create list"}
-                  </Button>
-                </CardContent>
-              </Card>
-              
-
-              {/* Sign out (kept) */}
+            <div className="flex items-center gap-3">
               <Button
-                variant="outline"
-                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                size="sm"
+                onClick={handleSavePreferences}
+                disabled={saving || !hasChanges}
+                className={cn(
+                  "rounded-full transition-all duration-300",
+                  hasChanges 
+                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/20"
+                    : "bg-white/5 text-zinc-500 hover:bg-white/10"
+                )}
               >
-                <LogOut className="w-5 h-5 mr-2" />
-                Sign Out
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2" />}
+                {saving ? "Saving..." : hasChanges ? "Save Changes" : "Up to Date"}
               </Button>
             </div>
+          </div>
+        </div>
 
-            {/* RIGHT COLUMN: People + Preferences */}
-            <div className="space-y-6">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
+          
+          {/* LEFT COLUMN: Profile & Lists */}
+          <div className="space-y-6">
+            
+            {/* Profile Card */}
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl overflow-hidden">
+              <div className="h-32 bg-gradient-to-r from-violet-600/20 via-fuchsia-500/10 to-transparent" />
+              <CardContent className="px-6 pb-8 -mt-16 flex flex-col items-center text-center">
+                <div className="relative mb-4 group">
+                  <Avatar className="w-32 h-32 border-4 border-zinc-900 shadow-xl">
+                    <AvatarImage src={avatarSrc} />
+                    <AvatarFallback className="text-3xl font-bold bg-zinc-800 text-zinc-400">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    onClick={() => setAvatarPickerOpen(true)}
+                    className="absolute bottom-0 right-0 p-2.5 bg-zinc-800 rounded-full border border-zinc-700 text-zinc-300 hover:bg-white hover:text-black transition-all shadow-lg"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <h1 className="text-2xl font-bold text-white mb-1">
+                  {profile?.username ?? "WatchWise User"}
+                </h1>
+                <p className="text-sm text-zinc-500 mb-6">
+                  {profile?.email ?? "Movie enthusiast"}
+                </p>
+
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  {selectedGenres.slice(0, 3).map((g) => (
+                    <Badge key={g} variant="secondary" className="bg-violet-500/10 text-violet-300 border-violet-500/20">{g}</Badge>
+                  ))}
+                  {selectedMoods.slice(0, 2).map((m) => (
+                    <Badge key={m} variant="outline" className="border-zinc-700 text-zinc-400">{m}</Badge>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  <Button asChild variant="outline" className="h-10 border-white/10 hover:bg-white/5">
+                    <Link href="/seen">
+                      <Film className="w-4 h-4 mr-2 text-violet-400" /> History
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-10 border-white/10 hover:bg-white/5">
+                    <Link href="/questionnaire">
+                      <Laugh className="w-4 h-4 mr-2 text-amber-400" /> Daily Poll
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="col-span-2 h-10 border-white/10 hover:bg-white/5">
+                    <Link href="/groups">
+                      <Users className="w-4 h-4 mr-2 text-teal-400" /> Manage Groups
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lists Card */}
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BarChart3 className="h-5 w-5 text-zinc-400" /> Your Lists
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {listsError ? (
+                  <p className="text-sm text-red-400">{listsError}</p>
+                ) : (
+                  <div className="grid gap-3">
+                    {lists.map((list) => (
+                      <ListCard key={list.id} list={list} />
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-xs text-zinc-500 mb-3 uppercase tracking-wider font-semibold">Create New List</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newListName}
+                      onChange={(e) => setNewListName(e.target.value)}
+                      placeholder="e.g. Date Night Classics"
+                      className="bg-black/20 border-white/10 h-10"
+                    />
+                    <Button
+                      size="icon"
+                      disabled={!newListName.trim() || creatingList}
+                      onClick={async () => {
+                        const name = newListName.trim()
+                        if (!name) return
+                        setCreatingList(true)
+                        try {
+                          const created = await createList(name)
+                          setLists((prev) => [created, ...prev])
+                          setNewListName("")
+                          toast.success("List created")
+                        } catch {
+                          toast.error("Failed to create list")
+                        } finally {
+                          setCreatingList(false)
+                        }
+                      }}
+                      className="h-10 w-10 shrink-0 bg-white text-black hover:bg-zinc-200"
+                    >
+                      {creatingList ? <Loader2 className="h-4 w-4 animate-spin"/> : <Plus className="h-4 w-4"/>}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Button
+              variant="ghost"
+              className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              <LogOut className="w-4 h-4 mr-2" /> Sign Out
+            </Button>
+          </div>
+
+          {/* RIGHT COLUMN: Preferences */}
+          <div className="space-y-6">
+            
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <SlidersHorizontal className="h-5 w-5 text-zinc-400" /> Taste Profile
+                </CardTitle>
+              </CardHeader>
               
-              
+              <CardContent className="space-y-8">
+                
+                {/* Genres */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-zinc-200">Favorite Genres</label>
+                    <span className="text-xs text-zinc-500">{selectedGenres.length} selected</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {genres.map((genre) => (
+                      <ChoicePill
+                        key={genre.id}
+                        active={selectedGenres.includes(genre.name)}
+                        onClick={() => toggleSelection(genre.name, selectedGenres, setSelectedGenres)}
+                      >
+                        {genre.name}
+                      </ChoicePill>
+                    ))}
+                  </div>
+                </div>
 
-              {/* People */}
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Favorite people
-                  </CardTitle>
-                </CardHeader>
+                {/* Moods */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-zinc-200">Vibe Check</label>
+                    <span className="text-xs text-zinc-500">What are you in the mood for?</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {moodOptions.map((mood) => (
+                      <ChoicePill
+                        key={mood}
+                        active={selectedMoods.includes(mood)}
+                        onClick={() => toggleSelection(mood, selectedMoods, setSelectedMoods)}
+                      >
+                        {mood}
+                      </ChoicePill>
+                    ))}
+                  </div>
+                </div>
 
-                <CardContent className="space-y-7">
-                  {/* Actors */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">Actors</p>
-                      <p className="text-sm text-muted-foreground">
-                        Add the faces you love seeing on screen.
-                      </p>
-                    </div>
+                {/* Discovery Slider */}
+                <div className="space-y-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-zinc-200">Discovery Intensity</label>
+                    <Badge variant="outline" className="border-violet-500/30 text-violet-300">
+                      {Math.round(weight * 100)}%
+                    </Badge>
+                  </div>
+                  <Slider
+                    min={10}
+                    max={100}
+                    step={10}
+                    value={[Math.round(weight * 100)]}
+                    onValueChange={(val) => setWeight(val[0] / 100)}
+                    className="cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+                    <span>Broad Discovery</span>
+                    <span>Precision Match</span>
+                  </div>
+                </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2">
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5 text-zinc-400" /> People
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                
+                {/* Actors */}
+                <div className="space-y-3 relative">
+                  <label className="text-sm font-medium text-zinc-200">Favorite Actors</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
                       <Input
                         value={actorInput}
                         onChange={(e) => setActorInput(e.target.value)}
-                        placeholder="e.g. Florence Pugh"
+                        placeholder="Search actors..."
+                        className="bg-black/20 border-white/10 focus-visible:ring-violet-500/50"
                       />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="sm:w-35"
-                        onClick={() =>
-                          void addPerson(
-                            actorInput,
-                            actors,
-                            setActors,
-                            () => setActorInput(""),
-                            "acting"
-                          )
-                        }
-                      >
-                        Add
-                      </Button>
+                      <SuggestionDropdown
+                        visible={!!actorInput}
+                        loading={suggestionsLoading}
+                        items={actorSuggestions}
+                        onPick={(name) => addPerson(name, actors, setActors, () => setActorInput(""), "acting")}
+                      />
                     </div>
-
-                    <SuggestionDropdown
-                      visible={!!actorInput}
-                      loading={suggestionsLoading}
-                      items={actorSuggestions}
-                      onPick={(name) =>
-                        void addPerson(
-                          name,
-                          actors,
-                          setActors,
-                          () => setActorInput(""),
-                          "acting"
-                        )
-                      }
-                    />
-
-                    <PersonGrid
-                      items={actors}
-                      onRemove={(name) => removePerson(name, actors, setActors)}
-                    />
+                    <Button 
+                      onClick={() => addPerson(actorInput, actors, setActors, () => setActorInput(""), "acting")}
+                      variant="secondary"
+                      className="bg-white/10 hover:bg-white/20 text-white"
+                    >
+                      Add
+                    </Button>
                   </div>
+                  <PersonGrid items={actors} onRemove={(name) => removePerson(name, actors, setActors)} />
+                </div>
 
-                  {/* Directors */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">Directors</p>
-                      <p className="text-sm text-muted-foreground">
-                        Help WatchWise understand your preferred style.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2">
+                {/* Directors */}
+                <div className="space-y-3 relative">
+                  <label className="text-sm font-medium text-zinc-200">Favorite Directors</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
                       <Input
                         value={directorInput}
                         onChange={(e) => setDirectorInput(e.target.value)}
-                        placeholder="e.g. Denis Villeneuve"
+                        placeholder="Search directors..."
+                        className="bg-black/20 border-white/10 focus-visible:ring-violet-500/50"
                       />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="sm:w-35"
-                        onClick={() =>
-                          void addPerson(
-                            directorInput,
-                            directors,
-                            setDirectors,
-                            () => setDirectorInput(""),
-                            "directing"
-                          )
-                        }
-                      >
-                        Add
-                      </Button>
+                      <SuggestionDropdown
+                        visible={!!directorInput}
+                        loading={suggestionsLoading}
+                        items={directorSuggestions}
+                        onPick={(name) => addPerson(name, directors, setDirectors, () => setDirectorInput(""), "directing")}
+                      />
                     </div>
-
-                    <SuggestionDropdown
-                      visible={!!directorInput}
-                      loading={suggestionsLoading}
-                      items={directorSuggestions}
-                      onPick={(name) =>
-                        void addPerson(
-                          name,
-                          directors,
-                          setDirectors,
-                          () => setDirectorInput(""),
-                          "directing"
-                        )
-                      }
-                    />
-
-                    <PersonGrid
-                      items={directors}
-                      onRemove={(name) => removePerson(name, directors, setDirectors)}
-                    />
+                    <Button 
+                      onClick={() => addPerson(directorInput, directors, setDirectors, () => setDirectorInput(""), "directing")}
+                      variant="secondary"
+                      className="bg-white/10 hover:bg-white/20 text-white"
+                    >
+                      Add
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                  <PersonGrid items={directors} onRemove={(name) => removePerson(name, directors, setDirectors)} />
+                </div>
 
-              {/* Preferences */}
-              <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur transition hover:shadow-xl hover:border-primary/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary flex items-center gap-2">
-                    <SlidersHorizontal className="h-5 w-5" />
-                    Preferences
-                  </CardTitle>
-                </CardHeader>
+              </CardContent>
+            </Card>
 
-                <CardContent className="space-y-7">
-                  {/* Genres */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">Favorite genres</p>
-                      <p className="text-sm text-muted-foreground">
-                        Pick more genres for a richer profile.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {genres.map((genre) => (
-                        <ChoicePill
-                          key={genre.id}
-                          active={selectedGenres.includes(genre.name)}
-                          onClick={() =>
-                            toggleSelection(genre.name, selectedGenres, setSelectedGenres)
-                          }
-                        >
-                          {genre.name}
-                        </ChoicePill>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Moods */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">Current mood</p>
-                      <p className="text-sm text-muted-foreground">
-                        Mood influences the style of suggestions.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {moodOptions.map((mood) => (
-                        <ChoicePill
-                          key={mood}
-                          active={selectedMoods.includes(mood)}
-                          onClick={() =>
-                            toggleSelection(mood, selectedMoods, setSelectedMoods)
-                          }
-                        >
-                          {mood}
-                        </ChoicePill>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Weight */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">Preference intensity</p>
-                      <Badge className="bg-primary/15 text-primary border border-primary/30">
-                        {Math.round(weight * 100)}%
-                      </Badge>
-                    </div>
-
-                    <Slider
-                      min={10}
-                      max={100}
-                      value={[Math.round(weight * 100)]}
-                      onValueChange={(value) => setWeight(value[0] / 100)}
-                    />
-
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>More discovery</span>
-                      <span>More personalization</span>
-                    </div>
-                  </div>
-
-                  {/* Help text */}
-                  <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
-                    <p className="text-sm text-muted-foreground">
-                      Tip: increase intensity for more targeted picks. Lower it to explore more broadly.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
-
-          {/* Keeps original conditional message area concept; now sticky handles it, but we keep state */}
-          {/* No additional block needed here */}
         </div>
       </div>
 
       <BottomNav />
 
+      {/* Avatar Modal */}
       {avatarPickerOpen && (
-        <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-3xl border border-border/60 bg-background/90 p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-zinc-900 p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-semibold">Choose your avatar</h2>
-                <p className="text-sm text-muted-foreground">Pick one to update your profile.</p>
+                <h2 className="text-xl font-bold text-white">Choose Avatar</h2>
+                <p className="text-sm text-zinc-400">Select a persona for your profile.</p>
               </div>
               <button
-                type="button"
                 onClick={() => setAvatarPickerOpen(false)}
-                className="rounded-full p-2 text-muted-foreground hover:text-foreground"
-                aria-label="Close"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-zinc-400" />
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {AVATAR_OPTIONS.map((option) => {
-                const active = profile?.avatar === option.id
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={async () => {
-                      setSavingAvatar(true)
-                      try {
-                        await patchProfile({ avatar: option.id })
-                        setProfile((prev) => (prev ? { ...prev, avatar: option.id } : prev))
-                        toast.success("Avatar updated")
-                        setAvatarPickerOpen(false)
-                      } catch {
-                        toast.error("Failed to update avatar")
-                      } finally {
-                        setSavingAvatar(false)
-                      }
-                    }}
-                    disabled={savingAvatar}
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl border p-2 transition",
-                      active
-                        ? "border-primary/60 bg-primary/10"
-                        : "border-border/60 hover:border-primary/40 hover:bg-secondary/40"
-                    )}
-                  >
-                    <img
-                      src={option.src}
-                      alt={option.id}
-                      className="h-20 w-20 rounded-full object-cover mx-auto"
-                    />
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="mt-4 text-sm text-muted-foreground">
-              {savingAvatar ? "Saving avatar..." : ""}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+              {AVATAR_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={async () => {
+                    setSavingAvatar(true)
+                    try {
+                      await patchProfile({ avatar: option.id })
+                      setProfile((prev) => (prev ? { ...prev, avatar: option.id } : prev))
+                      toast.success("Avatar updated")
+                      setAvatarPickerOpen(false)
+                    } catch {
+                      toast.error("Failed to update avatar")
+                    } finally {
+                      setSavingAvatar(false)
+                    }
+                  }}
+                  disabled={savingAvatar}
+                  className={cn(
+                    "relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105",
+                    profile?.avatar === option.id
+                      ? "border-violet-500 ring-2 ring-violet-500/30"
+                      : "border-transparent hover:border-white/20"
+                  )}
+                >
+                  <img src={option.src} alt={option.id} className="w-full h-full object-cover" />
+                  {savingAvatar && profile?.avatar === option.id && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-white"/>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>

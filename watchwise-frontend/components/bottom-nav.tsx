@@ -45,7 +45,7 @@ export function BottomNav() {
                     className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 transition-colors duration-300 drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)] ${
                       isActive
                         ? isForYou
-                          ? "text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.75)]"
+                          ? "text-discovery drop-shadow-[0_0_12px_rgba(250,204,21,0.75)]"
                           : "text-primary"
                         : "text-white/80"
                     }`}
@@ -55,7 +55,7 @@ export function BottomNav() {
                   className={`relative z-10 text-[9px] sm:text-[10px] md:text-xs font-medium transition-colors duration-300 ${
                     isActive
                       ? isForYou
-                        ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+                        ? "text-discovery drop-shadow-[0_0_10px_rgba(250,204,21,0.65)]"
                         : "text-primary"
                       : "text-white/80"
                   }`}

@@ -20,7 +20,7 @@
   --muted: oklch(0.2 0.01 200);
   --muted-foreground: oklch(0.6 0 0);
   /* Yellow-green accent for CTAs */
-  --accent: oklch(0.88 0.18 130);
+  --accent: rgb(120, 64, 234);
   --accent-foreground: oklch(0.1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.95 0 0);

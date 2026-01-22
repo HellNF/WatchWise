@@ -13,6 +13,25 @@ import {
   searchPeople,
   MovieCandidate
 } from "../../adapters/tmdb";
+
+// Funzione di supporto per arricchire il pool con i suggested dei topK
+async function fetchSuggestedForTopK(topK: MovieCandidate[], region: string, limitPerType = 10): Promise<MovieCandidate[]> {
+  const suggested: MovieCandidate[] = [];
+  for (const movie of topK) {
+    const tmdbId = parseTmdbId(movie.movieId);
+    if (!tmdbId) continue;
+    try {
+      const [similar, recommended] = await Promise.all([
+        fetchSimilarMovies(tmdbId, limitPerType),
+        fetchRecommendedMovies(tmdbId, limitPerType)
+      ]);
+      suggested.push(...similar, ...recommended);
+    } catch {
+      continue;
+    }
+  }
+  return suggested;
+}
 import {
   getRecentlyWatchedMovies,
   getWatchHistoryEntries
@@ -136,7 +155,7 @@ export async function buildGroupCandidatePool(
   );
 
   const poolTarget = limit * 3;
-  const baseQuota = Math.max(1, Math.floor(poolTarget * 0.15));
+  const baseQuota = Math.max(1, Math.floor(poolTarget * 0.30));
   const prefQuota = poolTarget - baseQuota;
 
   const filtered = buildPool(
@@ -153,13 +172,29 @@ export async function buildGroupCandidatePool(
     outsiderCandidates.map((candidate) => normalizeMovieId(candidate.movieId))
   );
 
+  // Arricchimento: prendi i topK dal pool filtrato e aggiungi i suggested
+  const topKForSuggestions = filtered.slice(0, 8); // Primi 8 film per varietà
+  const suggested = await fetchSuggestedForTopK(topKForSuggestions, region, 6);
+
+  // Unisci i suggested al pool, deduplicando e filtrando come sopra
+  const allCandidates = [...filtered, ...suggested];
+  const enrichedPool = buildPool(
+    allCandidates,
+    [],
+    allCandidates.length,
+    0,
+    watchedSet,
+    watchlistSet,
+    blockedSet
+  );
+
   const pool = mergeOutsiders(
-    filtered,
+    enrichedPool,
     outsiderCandidates,
     outsiderIds
   );
 
-  console.log(`[GroupRecommendation] Pool di candidati unici generato: ${pool.length} film diversi`);
+  console.log(`[GroupRecommendation] Pool di candidati unici generato (con suggested): ${pool.length} film diversi`);
   return { pool, outsiderIds };
 }
 

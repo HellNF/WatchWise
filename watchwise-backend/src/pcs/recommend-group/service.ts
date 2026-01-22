@@ -73,6 +73,7 @@ export async function recommendForGroup(
     preferences
   );
 
+  // Arricchisci, filtra, e ricalcola score/compatibilità su tutto il pool (inclusi i suggested)
   const enrichedCandidates = await enrichCandidates(candidates);
   const filteredCandidates = enrichedCandidates.filter((candidate) => {
     const lang = candidate.originalLanguage?.toLowerCase();
@@ -211,9 +212,9 @@ function buildBuckets(scored: GroupScoredMovie[]): {
   buckets: { high: GroupScoredMovie[]; medium: GroupScoredMovie[]; explore: GroupScoredMovie[] };
   outsiders: GroupScoredMovie[];
 } {
-  const high = scored.filter((entry) => entry.compatibility >= 0.8);
-  const medium = scored.filter((entry) => entry.compatibility >= 0.6 && entry.compatibility < 0.8);
-  const explore = scored.filter((entry) => entry.compatibility >= 0.4 && entry.compatibility < 0.6);
+  const high = scored.filter((entry) => entry.compatibility >= 0.7);
+  const medium = scored.filter((entry) => entry.compatibility >= 0.5 && entry.compatibility < 0.7);
+  const explore = scored.filter((entry) => entry.compatibility >= 0.35 && entry.compatibility < 0.5);
 
   const outsiders = scored.filter((entry) => entry.outsider);
 

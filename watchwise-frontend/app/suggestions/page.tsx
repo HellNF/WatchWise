@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/carousel"
 import GradientText from "@/components/ui/gradient-text"
 import PrismaticBurst from "@/components/ui/prismatic-burst"
-import { Sparkles, Check } from "lucide-react"
+import { Sparkles, Check, RefreshCcw, Loader2 } from "lucide-react"
 import {
   getRecommendedMovies,
   getRecommendations,
@@ -24,6 +24,7 @@ import {
   type RecommendationResponse,
   type WatchHistoryEntry,
 } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 const POSTER_BASE = "https://image.tmdb.org/t/p/w500"
 
@@ -267,14 +268,29 @@ export default function SuggestionsPage() {
         }
 
   const content = useMemo(() => {
-    if (loading) return <div className="text-muted-foreground">Loading suggestions...</div>
-    if (error) return <div className="text-destructive">{error}</div>
+    if (loading) return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p>Curating your list...</p>
+      </div>
+    )
+    
+    if (error) return (
+      <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-center">
+        {error}
+      </div>
+    )
+    
     if (!items.length) {
-      return <div className="text-muted-foreground">No suggestions available yet.</div>
+      return (
+        <div className="text-center py-20 rounded-3xl border border-dashed border-white/10 bg-white/[0.02]">
+          <p className="text-zinc-500">No suggestions available yet. Try rating some movies!</p>
+        </div>
+      )
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
         {items.map((movie) => (
           <MovieCard
             key={movie.id}
@@ -286,15 +302,17 @@ export default function SuggestionsPage() {
             isDiscovery={movie.serendipity}
             alwaysShowActions
             meta={
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground mt-2">
                 {movie.reasons?.length ? (
-                  <ul className="list-disc pl-4">
-                    {movie.reasons.slice(0, 3).map((reason) => (
-                      <li key={`${movie.id}-${reason}`}>{reason}</li>
+                  <ul className="space-y-1">
+                    {movie.reasons.slice(0, 2).map((reason) => (
+                      <li key={`${movie.id}-${reason}`} className="flex items-start gap-1 leading-tight">
+                        <span className="text-amber-400 mt-0.5">•</span> {reason}
+                      </li>
                     ))}
                   </ul>
                 ) : (
-                  <span>Based on your preferences</span>
+                  <span className="text-zinc-500 italic">Based on your taste</span>
                 )}
               </div>
             }
@@ -313,139 +331,156 @@ export default function SuggestionsPage() {
   }, [loading, error, items])
 
   return (
-    <main className="min-h-screen pb-28 ,_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_50%)]">
-      <Header />
-      <div className="container mx-auto px-4 py-10 mx-1 max-w-11/12">
-        <div
-          id="suggestions-hero"
-          className="relative overflow-hidden rounded-3xl border  bg-neutral-950/60 mb-10 group backdrop-blur-sm"
-          onMouseEnter={() => setIsHeroHovered(true)}
-          onMouseLeave={() => setIsHeroHovered(false)}
-          onFocus={() => setIsHeroHovered(true)}
-          onBlur={() => setIsHeroHovered(false)}
-          tabIndex={0}
-        >
+    <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-amber-500/30 pb-28">
+      
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-amber-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
+
+      {/* --- CONTENT --- */}
+      <div className="relative z-10">
+        <Header />
+
+        <div className="container mx-auto px-4 py-8 max-w-[1400px]">
           
-          {burstQuality !== "off" && (
-            <div className="absolute inset-0 pointer-events-none -z-10">
-              <PrismaticBurst
-                colors={["#fbbf24", "#ffffff", "#2dd4bf"]} // Yellow, White, Teal
-                {...burstProps}
-                paused={!isHeroVisible || !isHeroHovered}
-              />
-            </div>
-          )}
+          {/* HERO SECTION */}
+          <div
+            id="suggestions-hero"
+            className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-zinc-900/60 mb-16 group outline-none focus:ring-2 focus:ring-amber-500/50 transition-all duration-500"
+            onMouseEnter={() => setIsHeroHovered(true)}
+            onMouseLeave={() => setIsHeroHovered(false)}
+            onFocus={() => setIsHeroHovered(true)}
+            onBlur={() => setIsHeroHovered(false)}
+            tabIndex={0}
+          >
+            {burstQuality !== "off" && (
+              <div className="absolute inset-0 pointer-events-none opacity-60 mix-blend-screen">
+                <PrismaticBurst
+                  colors={["#fbbf24", "#7c3aed", "#2dd4bf"]} // Amber, Violet, Teal
+                  {...burstProps}
+                  paused={!isHeroVisible || !isHeroHovered}
+                />
+              </div>
+            )}
 
-          {/* Centered Content */}
-          <div className="relative flex flex-col items-center text-center z-10 px-6 py-12">
-            
-            {/* Top Icon Group */}
-            <div className="mb-8 flex flex-col items-center gap-2">
-               <div className="relative">
-                 <Sparkles className="h-8 w-8 text-yellow-300 fill-yellow-300/20 animate-pulse" />
-               </div>
-            </div>
-
-            {/* Pill Badge */}
-            <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-6 py-2 backdrop-blur-sm shadow-[0_0_15px_rgba(234,179,8,0.15)]">
-               <span className="text-[10px] text-yellow-500">◀</span>
-               <span className="text-xs font-semibold uppercase tracking-[0.25em] text-yellow-100">Main Feature</span>
-               <span className="text-[10px] text-yellow-500">▶</span>
-            </div>
-            
-            {/* Title with Gradient Text */}
-            <div className="mb-6">
-               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-2xl leading-tight">
-                  Your <GradientText colors={["#fefce8", "#fde047", "#eab308", "#fde047", "#fefce8"]} animationSpeed={6} showBorder={false} className="inline-block px-2 text-5xl md:text-6xl lg:text-7xl font-bold">tailored</GradientText>
-                  <br className="my-2"/>
-                  suggestions
-               </h1>
-            </div>
-            
-            {/* Subtitle */}
-            <p className="mb-10 max-w-2xl text-lg text-yellow-100/80 font-medium">
-              A daily blend of picks tuned to your taste, with a touch of discovery
-            </p>
-
-            {/* Footer Row */}
-            <div className="flex w-full max-w-4xl flex-col items-center justify-between gap-6 md:flex-row px-4">
-              {/* Features List */}
-              <div className="flex flex-wrap justify-center gap-8 md:justify-start">
-                  <div className="flex items-center gap-3 text-sm font-medium text-yellow-100">
-                    <Check className="h-4 w-4 text-yellow-400" />
-                    Personalized daily mix
-                  </div>
-                  <div className="flex items-center gap-3 text-sm font-medium text-yellow-100">
-                    <Check className="h-4 w-4 text-yellow-400" />
-                    Discovery first
-                  </div>
+            <div className="relative z-10 px-6 py-16 md:py-20 flex flex-col items-center text-center">
+              
+              <div className="mb-6 animate-float">
+                <div className="p-3 rounded-full bg-amber-500/10 border border-amber-500/20 backdrop-blur-md">
+                  <Sparkles className="h-8 w-8 text-amber-400 fill-amber-400/20" />
+                </div>
               </div>
 
-              {/* Refresh Button */}
-              <Button
-                className="group/btn h-12 min-w-[140px] border-yellow-500/50 bg-yellow-950/40 text-yellow-100 hover:bg-yellow-500/20 hover:text-white backdrop-blur-md transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)]"
-                variant="outline"
-                onClick={() => loadSuggestions(0, false)}
-                disabled={loading}
-              >
-                {loading ? "Refreshing..." : "Refresh"}
-              </Button>
+              <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-md shadow-lg">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">AI Curated Daily</span>
+              </div>
+              
+              <h1 className="mb-6 text-5xl md:text-7xl font-bold tracking-tight text-white drop-shadow-sm max-w-4xl leading-[1.1]">
+                Your <GradientText colors={["#fcd34d", "#fbbf24", "#d97706", "#fbbf24", "#fcd34d"]} animationSpeed={6} showBorder={false} className="inline-block px-2">tailored</GradientText>
+                <br className="hidden md:block" /> mix is ready.
+              </h1>
+              
+              <p className="mb-10 max-w-xl text-lg text-zinc-300 font-medium leading-relaxed">
+                We've analyzed your watch history to find hidden gems and new favorites just for you.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <Button
+                  className="h-12 px-8 rounded-full bg-white text-black hover:bg-zinc-200 font-bold text-base shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:scale-105"
+                  onClick={() => loadSuggestions(0, false)}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                  {loading ? "Refreshing..." : "Refresh Picks"}
+                </Button>
+                
+                <div className="flex items-center gap-6 px-6 text-sm font-medium text-zinc-400">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    Personalized
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    Discovery First
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {carouselLoading || carouselItems.length ? (
-          <section className="mb-10">
-            <div className="flex items-end justify-between gap-4 mb-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-                  Based on your last 8+
-                </p>
-                <h2 className="text-2xl font-semibold">Because you loved your last movie</h2>
+          {/* HISTORY CAROUSEL */}
+          {(carouselLoading || carouselItems.length > 0) && (
+            <section className="mb-16">
+              <div className="flex items-end justify-between gap-4 mb-6 px-2">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-amber-500/80 font-bold mb-1">
+                    Because you watched
+                  </p>
+                  <h2 className="text-2xl font-bold text-white">Similar to your favorites</h2>
+                </div>
               </div>
+
+              {carouselLoading ? (
+                <div className="h-64 w-full flex items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02]">
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-600" />
+                </div>
+              ) : (
+                <Carousel opts={{ align: "start", loop: false }} className="w-full">
+                  <CarouselContent className="-ml-4">
+                    {carouselItems.map((movie) => (
+                      <CarouselItem
+                        key={movie.id}
+                        className="pl-4 basis-[160px] sm:basis-[200px] md:basis-[240px]"
+                      >
+                        <MovieCard
+                          id={movie.id}
+                          title={movie.title}
+                          poster={movie.poster}
+                          year={movie.year}
+                          rating={movie.rating}
+                          alwaysShowActions
+                        >
+                          <MovieQuickActions movieId={movie.id} />
+                        </MovieCard>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="hidden md:flex -left-4 border-white/10 bg-black/50 hover:bg-black/80 text-white" />
+                  <CarouselNext className="hidden md:flex -right-4 border-white/10 bg-black/50 hover:bg-black/80 text-white" />
+                </Carousel>
+              )}
+            </section>
+          )}
+
+          {/* MAIN GRID */}
+          <section>
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h2 className="text-2xl font-bold text-white">Top Suggestions</h2>
+              <span className="text-xs font-mono text-zinc-500 bg-white/5 px-2 py-1 rounded border border-white/5">
+                {items.length} Titles
+              </span>
             </div>
 
-            {carouselLoading ? (
-              <div className="text-muted-foreground">Loading recommendations...</div>
-            ) : (
-              <Carousel opts={{ align: "start" }} className="relative">
-                <CarouselContent className="-ml-4">
-                  {carouselItems.map((movie) => (
-                    <CarouselItem
-                      key={movie.id}
-                      className="pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
-                    >
-                      <MovieCard
-                        id={movie.id}
-                        title={movie.title}
-                        poster={movie.poster}
-                        year={movie.year}
-                        rating={movie.rating}
-                        alwaysShowActions
-                      >
-                        <MovieQuickActions movieId={movie.id} />
-                      </MovieCard>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden md:flex -left-6" />
-                <CarouselNext className="hidden md:flex -right-6" />
-              </Carousel>
+            {content}
+
+            {items.length > 0 && (
+              <div className="flex justify-center pt-12 pb-8">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full px-8 border-white/10 bg-zinc-900/50 hover:bg-white/10 hover:text-white transition-all"
+                  onClick={() => loadSuggestions(page + 1, true)}
+                  disabled={loadingMore || loading}
+                >
+                  {loadingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {loadingMore ? "Loading..." : "Load More"}
+                </Button>
+              </div>
             )}
           </section>
-        ) : null}
 
-        {content}
-
-        <div className="flex justify-center pt-6">
-          <Button
-            variant="outline"
-            className="h-11 text-base"
-            onClick={() => loadSuggestions(page + 1, true)}
-            disabled={loadingMore || loading}
-          >
-            {loadingMore ? "Loading..." : "Load more"}
-          </Button>
         </div>
       </div>
       <BottomNav />

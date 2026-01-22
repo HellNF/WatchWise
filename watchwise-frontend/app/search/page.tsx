@@ -7,6 +7,8 @@ import { MovieCard } from "@/components/movie-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Search, X, Filter } from "lucide-react"
 import {
   getMovieGenres,
   getMoviesByGenre,
@@ -18,6 +20,7 @@ import {
   type MovieListItem,
   type PersonSearchResult
 } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 const POSTER_BASE = "https://image.tmdb.org/t/p/w500"
 
@@ -301,10 +304,26 @@ export default function SearchPage() {
   }
 
   const content = useMemo(() => {
-    if (loading) return <div className="text-muted-foreground">Searching...</div>
-    if (error) return <div className="text-destructive">{error}</div>
+    if (loading) return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p>Searching the database...</p>
+      </div>
+    )
+    
+    if (error) return (
+      <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-center">
+        {error}
+      </div>
+    )
+    
     if (!results.length) {
-      return <div className="text-muted-foreground">No results found.</div>
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-2xl bg-white/5">
+          <Search className="h-8 w-8 mb-4 opacity-50" />
+          <p>No results found. Try adjusting your filters.</p>
+        </div>
+      )
     }
 
     return (
@@ -318,12 +337,11 @@ export default function SearchPage() {
             year={movie.year}
             rating={movie.rating}
             meta={
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {movie.duration ? <span>{movie.duration} min</span> : null}
-                {movie.genres?.length ? (
-                  <span className="line-clamp-1">{movie.genres.join(", ")}</span>
-                ) : null}
-                {movie.director ? <span>Director: {movie.director}</span> : null}
+              <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground mt-1">
+                {movie.duration ? <Badge variant="secondary" className="bg-white/5">{movie.duration}m</Badge> : null}
+                {movie.genres?.slice(0, 2).map(g => (
+                  <span key={g} className="px-1.5 py-0.5 rounded-sm bg-white/5">{g}</span>
+                ))}
               </div>
             }
           />
@@ -333,341 +351,307 @@ export default function SearchPage() {
   }, [loading, error, results])
 
   return (
-    <main className="min-h-screen pb-28 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_50%)]">
-      <Header />
-      <div className="container mx-auto px-4 py-10 mx-1 max-w-11/12">
-        <div className="flex flex-col gap-3 mb-10">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300/80">
-            Quick Search
+    <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-emerald-500/30 pb-28">
+      
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
+
+      {/* --- CONTENT --- */}
+      <div className="relative z-10">
+        <Header />
+
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          
+          <div className="flex flex-col gap-2 mb-10">
+            <Badge variant="outline" className="w-fit border-emerald-500/30 bg-emerald-500/10 text-emerald-300 uppercase tracking-widest text-[10px]">
+              Advanced Search
+            </Badge>
+            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
+              Discover Movies
+            </h1>
+            <p className="text-muted-foreground text-sm max-w-2xl">
+              Filter by title, genre, cast, director, and more to find exactly what you're looking for.
+            </p>
           </div>
-          <h1 className="text-4xl font-semibold">Search</h1>
-          <p className="text-base text-muted-foreground">
-            Find movies by title, genre, duration, cast, and director.
-          </p>
-        </div>
 
-        <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-3xl border border-emerald-500/20 bg-card/80 p-6 shadow-lg shadow-emerald-500/10">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">Filters</h2>
-                  <p className="text-xs text-muted-foreground">Refine your search</p>
-                </div>
-                <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold text-emerald-200">
-                  {results.length} results
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    className="h-11 text-base"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="E.g. Inception"
-                  />
+          <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+            
+            {/* SIDEBAR FILTERS */}
+            <aside className="space-y-4 lg:sticky lg:top-24 h-fit">
+              <div className="rounded-3xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-5 shadow-xl">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-emerald-400" />
+                    <h2 className="font-semibold">Filters</h2>
+                  </div>
+                  {results.length > 0 && (
+                    <span className="text-xs font-mono text-zinc-500">
+                      {results.length} found
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Keywords</label>
-                  <Input
-                    className="h-11 text-base"
-                    value={keywords}
-                    onChange={(event) => setKeywords(event.target.value)}
-                    placeholder="E.g. space, time travel"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Separate keywords with a comma.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Genres</label>
-                  <div className="grid gap-2 rounded-xl border border-emerald-500/20 bg-background/60 p-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={selectedGenreIds.length === 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) setSelectedGenreIds([])
-                        }}
+                <div className="space-y-6">
+                  
+                  {/* Title Input */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Title</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                      <Input
+                        className="pl-9 bg-black/20 border-white/10 focus-visible:ring-emerald-500/50"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="E.g. Inception"
                       />
-                      <span>All genres</span>
-                    </label>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {genres.map((genre) => {
-                        const id = String(genre.id)
-                        const checked = selectedGenreIds.includes(id)
-                        return (
-                          <label key={id} className="flex items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => {
-                                setSelectedGenreIds((prev) =>
-                                  checked
-                                    ? prev.filter((value) => value !== id)
-                                    : [...prev, id]
-                                )
-                              }}
-                            />
-                            <span>{genre.name}</span>
-                          </label>
-                        )
-                      })}
                     </div>
                   </div>
-                </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* Keywords Input */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Min duration (min)</label>
+                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Keywords</label>
                     <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={0}
-                      value={minDuration}
-                      onChange={(event) => setMinDuration(event.target.value)}
-                      placeholder="90"
+                      className="bg-black/20 border-white/10 focus-visible:ring-emerald-500/50"
+                      value={keywords}
+                      onChange={(e) => setKeywords(e.target.value)}
+                      placeholder="space, time travel..."
                     />
                   </div>
 
+                  {/* Genres */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Max duration (min)</label>
-                    <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={0}
-                      value={maxDuration}
-                      onChange={(event) => setMaxDuration(event.target.value)}
-                      placeholder="150"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Min rating</label>
-                    <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      value={minRating}
-                      onChange={(event) => setMinRating(event.target.value)}
-                      placeholder="7.0"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Max rating</label>
-                    <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      value={maxRating}
-                      onChange={(event) => setMaxRating(event.target.value)}
-                      placeholder="9.5"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Min year</label>
-                    <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={1900}
-                      max={2100}
-                      value={minYear}
-                      onChange={(event) => setMinYear(event.target.value)}
-                      placeholder="2000"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Max year</label>
-                    <Input
-                      className="h-11 text-base"
-                      type="number"
-                      min={1900}
-                      max={2100}
-                      value={maxYear}
-                      onChange={(event) => setMaxYear(event.target.value)}
-                      placeholder="2024"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Actor</label>
-                  <Input
-                    className="h-11 text-base"
-                    value={actorInput}
-                    onChange={(event) => setActorInput(event.target.value)}
-                    placeholder="Search an actor"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && actorSuggestions.length > 0 && !selectedActor) {
-                        event.preventDefault()
-                        selectActor(actorSuggestions[0])
-                      }
-                    }}
-                  />
-                  {selectedActor ? (
-                    <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2 text-sm">
-                      <span>{selectedActor.name}</span>
-                      <button
-                        type="button"
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setSelectedActor(null)}
-                      >
-                        Remove
-                      </button>
+                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Genres</label>
+                    <div className="rounded-xl border border-white/5 bg-black/20 p-3 max-h-48 overflow-y-auto custom-scrollbar">
+                      <label className="flex items-center gap-2 text-sm p-1 hover:bg-white/5 rounded cursor-pointer">
+                        <Checkbox
+                          checked={selectedGenreIds.length === 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedGenreIds([])
+                          }}
+                          className="border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                        />
+                        <span>All genres</span>
+                      </label>
+                      <div className="grid grid-cols-1 gap-1 mt-1">
+                        {genres.map((genre) => {
+                          const id = String(genre.id)
+                          return (
+                            <label key={id} className="flex items-center gap-2 text-sm p-1 hover:bg-white/5 rounded cursor-pointer">
+                              <Checkbox
+                                checked={selectedGenreIds.includes(id)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedGenreIds((prev) =>
+                                    checked
+                                      ? [...prev, id]
+                                      : prev.filter((value) => value !== id)
+                                  )
+                                }}
+                                className="border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                              />
+                              <span className="truncate">{genre.name}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </div>
-                  ) : null}
-                  {actorSuggestions.length > 0 && !selectedActor ? (
-                    <div className="rounded-md border border-border/50 bg-background shadow-sm">
-                      {actorSuggestions.map((person) => (
-                        <button
-                          key={person.id}
-                          type="button"
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
-                          onClick={() => selectActor(person)}
-                        >
-                          <span>{person.name}</span>
-                          <span className="text-xs text-muted-foreground">Actor</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Director</label>
-                  <Input
-                    className="h-11 text-base"
-                    value={directorInput}
-                    onChange={(event) => setDirectorInput(event.target.value)}
-                    placeholder="Search a director"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && directorSuggestions.length > 0 && !selectedDirector) {
-                        event.preventDefault()
-                        selectDirector(directorSuggestions[0])
-                      }
-                    }}
-                  />
-                  {selectedDirector ? (
-                    <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2 text-sm">
-                      <span>{selectedDirector.name}</span>
-                      <button
-                        type="button"
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setSelectedDirector(null)}
-                      >
-                        Remove
-                      </button>
+                  {/* Duration Range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">Min Mins</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        value={minDuration}
+                        onChange={(e) => setMinDuration(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
                     </div>
-                  ) : null}
-                  {directorSuggestions.length > 0 && !selectedDirector ? (
-                    <div className="rounded-md border border-border/50 bg-background shadow-sm">
-                      {directorSuggestions.map((person) => (
-                        <button
-                          key={person.id}
-                          type="button"
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
-                          onClick={() => selectDirector(person)}
-                        >
-                          <span>{person.name}</span>
-                          <span className="text-xs text-muted-foreground">Director</span>
-                        </button>
-                      ))}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">Max Mins</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="300"
+                        value={maxDuration}
+                        onChange={(e) => setMaxDuration(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
                     </div>
-                  ) : null}
-                </div>
+                  </div>
 
-                <div className="flex flex-col gap-3 pt-2">
-                  <Button className="h-11 text-base" onClick={handleSearch} disabled={loading}>
-                    {loading ? "Searching..." : "Search"}
-                  </Button>
-                  <Button
-                    className="h-11 text-base"
-                    variant="outline"
-                    onClick={() => {
-                      setQuery("")
-                      setSelectedGenreIds([])
-                      setSelectedActor(null)
-                      setSelectedDirector(null)
-                      setMinDuration("")
-                      setMaxDuration("")
-                      setMinRating("")
-                      setMaxRating("")
-                      setMinYear("")
-                      setMaxYear("")
-                      setKeywords("")
-                      setResults([])
-                    }}
-                  >
-                    Reset filters
-                  </Button>
+                  {/* Rating Range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">Min Rating</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={10}
+                        step={0.1}
+                        placeholder="0"
+                        value={minRating}
+                        onChange={(e) => setMinRating(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">Max Rating</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={10}
+                        step={0.1}
+                        placeholder="10"
+                        value={maxRating}
+                        onChange={(e) => setMaxRating(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Year Range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">Start Year</label>
+                      <Input
+                        type="number"
+                        min={1900}
+                        placeholder="1900"
+                        value={minYear}
+                        onChange={(e) => setMinYear(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 uppercase">End Year</label>
+                      <Input
+                        type="number"
+                        min={1900}
+                        placeholder="2025"
+                        value={maxYear}
+                        onChange={(e) => setMaxYear(e.target.value)}
+                        className="bg-black/20 border-white/10 h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* People Filters */}
+                  <div className="space-y-3">
+                    <div className="space-y-1 relative">
+                       <label className="text-[10px] text-zinc-500 uppercase">Actor</label>
+                       <Input 
+                          value={actorInput} 
+                          onChange={(e) => setActorInput(e.target.value)} 
+                          placeholder="Search actor..."
+                          className="bg-black/20 border-white/10 h-9 text-sm"
+                          onKeyDown={(e) => {
+                             if (e.key === "Enter" && actorSuggestions.length > 0 && !selectedActor) {
+                                e.preventDefault()
+                                selectActor(actorSuggestions[0])
+                             }
+                          }}
+                       />
+                       {selectedActor && (
+                         <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-xs mt-1">
+                            <span className="text-emerald-200">{selectedActor.name}</span>
+                            <button onClick={() => setSelectedActor(null)} className="text-emerald-400 hover:text-white"><X className="h-3 w-3"/></button>
+                         </div>
+                       )}
+                       {actorSuggestions.length > 0 && !selectedActor && (
+                          <div className="absolute top-full left-0 w-full z-50 mt-1 bg-zinc-900 border border-white/10 rounded-md shadow-xl overflow-hidden">
+                             {actorSuggestions.map(p => (
+                                <button key={p.id} onClick={() => selectActor(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5">{p.name}</button>
+                             ))}
+                          </div>
+                       )}
+                    </div>
+
+                    <div className="space-y-1 relative">
+                       <label className="text-[10px] text-zinc-500 uppercase">Director</label>
+                       <Input 
+                          value={directorInput} 
+                          onChange={(e) => setDirectorInput(e.target.value)} 
+                          placeholder="Search director..."
+                          className="bg-black/20 border-white/10 h-9 text-sm"
+                          onKeyDown={(e) => {
+                             if (e.key === "Enter" && directorSuggestions.length > 0 && !selectedDirector) {
+                                e.preventDefault()
+                                selectDirector(directorSuggestions[0])
+                             }
+                          }}
+                       />
+                       {selectedDirector && (
+                         <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded text-xs mt-1">
+                            <span className="text-blue-200">{selectedDirector.name}</span>
+                            <button onClick={() => setSelectedDirector(null)} className="text-blue-400 hover:text-white"><X className="h-3 w-3"/></button>
+                         </div>
+                       )}
+                       {directorSuggestions.length > 0 && !selectedDirector && (
+                          <div className="absolute top-full left-0 w-full z-50 mt-1 bg-zinc-900 border border-white/10 rounded-md shadow-xl overflow-hidden">
+                             {directorSuggestions.map(p => (
+                                <button key={p.id} onClick={() => selectDirector(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5">{p.name}</button>
+                             ))}
+                          </div>
+                       )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 space-y-2">
+                    <Button 
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                      onClick={handleSearch} 
+                      disabled={loading}
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Filters"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full text-zinc-400 hover:text-white hover:bg-white/5"
+                      onClick={() => {
+                        setQuery("")
+                        setSelectedGenreIds([])
+                        setSelectedActor(null)
+                        setSelectedDirector(null)
+                        setMinDuration("")
+                        setMaxDuration("")
+                        setMinRating("")
+                        setMaxRating("")
+                        setMinYear("")
+                        setMaxYear("")
+                        setKeywords("")
+                        setResults([])
+                      }}
+                    >
+                      Reset All
+                    </Button>
+                  </div>
+
                 </div>
               </div>
-            </div>
-          </aside>
+            </aside>
 
-          <section className="space-y-6">
-            <div className="flex flex-wrap items-center gap-2">
-              {query ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Title: {query}
-                </span>
-              ) : null}
-              {selectedGenres.map((genre) => (
-                <span
-                  key={genre.id}
-                  className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100"
-                >
-                  Genre: {genre.name}
-                </span>
-              ))}
-              {minRating ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Rating ≥ {minRating}
-                </span>
-              ) : null}
-              {maxRating ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Rating ≤ {maxRating}
-                </span>
-              ) : null}
-              {minDuration ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Duration ≥ {minDuration} min
-                </span>
-              ) : null}
-              {maxDuration ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Duration ≤ {maxDuration} min
-                </span>
-              ) : null}
-              {keywords ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">
-                  Keywords: {keywords}
-                </span>
-              ) : null}
-            </div>
+            {/* RESULTS SECTION */}
+            <section className="space-y-6">
+              
+              {/* Active Filters Display */}
+              <div className="flex flex-wrap items-center gap-2">
+                {query && <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">"{query}"</Badge>}
+                {selectedGenres.map(g => (
+                   <Badge key={g.id} variant="secondary" className="bg-white/5 hover:bg-white/10">{g.name}</Badge>
+                ))}
+                {(minYear || maxYear) && <Badge variant="secondary" className="bg-white/5">{minYear || '...'} - {maxYear || '...'}</Badge>}
+              </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {results.length} results
-              </p>
-            </div>
+              {content}
 
-            {content}
-          </section>
+            </section>
+          </div>
         </div>
       </div>
       <BottomNav />

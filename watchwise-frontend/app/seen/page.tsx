@@ -5,7 +5,8 @@ import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
-import { Check, ClipboardCheck, Trash2 } from "lucide-react"
+import { Check, ClipboardCheck, Trash2, Loader2, CalendarClock, Star } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   deleteWatchHistory,
@@ -14,6 +15,7 @@ import {
   type WatchHistoryEntry,
   type MovieDetails
 } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 type SeenMovieCard = {
   id: string
@@ -121,6 +123,13 @@ export default function SeenMoviesPage() {
           }
         })
 
+        // Sort by most recently watched
+        result.sort((a, b) => {
+            const dateA = a.watchedAt ? new Date(a.watchedAt).getTime() : 0
+            const dateB = b.watchedAt ? new Date(b.watchedAt).getTime() : 0
+            return dateB - dateA
+        })
+
         if (active) setItems(result)
       } catch {
         if (active) setError("Failed to load watch history.")
@@ -136,55 +145,87 @@ export default function SeenMoviesPage() {
   }, [])
 
   const content = useMemo(() => {
-    if (loading) return <div className="text-muted-foreground">Loading...</div>
-    if (error) return <div className="text-destructive">{error}</div>
-    if (!items.length) return <div className="text-muted-foreground">No watched movies yet.</div>
+    if (loading) return (
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p>Retrieving your history...</p>
+      </div>
+    )
+    
+    if (error) return (
+      <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-center">
+        {error}
+      </div>
+    )
+    
+    if (!items.length) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 rounded-3xl border border-dashed border-white/10 bg-white/[0.02]">
+          <div className="p-4 rounded-full bg-zinc-900 mb-4 border border-white/5">
+             <CalendarClock className="h-8 w-8 text-zinc-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-1">No movies yet</h3>
+          <p className="text-sm text-zinc-500">Mark movies as seen to build your history.</p>
+        </div>
+      )
+    }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {items.map((movie) => (
-          <div key={movie.id} className="flex flex-col gap-12">
+          <div key={movie.id} className="relative group">
             <MovieCard
               id={movie.id}
               title={movie.title}
               poster={movie.poster}
               year={movie.year}
               rating={movie.myRating}
-              className=""
-              children={
-                <div className="flex items-center gap-1">
-                  <MovieQuickActions movieId={movie.id} showHistory={false} />
-                  <button
-                    type="button"
-                    aria-label="Remove from history"
-                    onClick={async () => {
-                      if (!movie.entryId) return
-                      setRemovingId(movie.entryId)
-                      try {
-                        await deleteWatchHistory(movie.entryId)
-                        setItems((prev) => prev.filter((item) => item.entryId !== movie.entryId))
-                      } catch {
-                        toast.error("Unable to remove from history")
-                      } finally {
-                        setRemovingId(null)
-                      }
-                    }}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-destructive/40 bg-background/70 text-destructive transition hover:border-destructive/70 hover:text-destructive/80"
-                    disabled={removingId === movie.entryId}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              }
               meta={
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span>{formatRelativeDate(movie.watchedAt)}</span>
-                  </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="border-white/10 bg-white/5 text-[10px] text-zinc-400 font-mono">
+                    {formatRelativeDate(movie.watchedAt)}
+                  </Badge>
+                  {movie.myRating ? (
+                    <div className="flex items-center gap-1 text-[10px] text-amber-400 font-bold">
+                        <Star className="w-3 h-3 fill-amber-400" /> {movie.myRating}/10
+                    </div>
+                  ) : null}
                 </div>
               }
-            />
+            >
+                <div className="flex items-center justify-between gap-2 w-full pt-2">
+                    <div className="flex-1">
+                       <MovieQuickActions movieId={movie.id} showHistory={false} />
+                    </div>
+                    
+                    <button
+                        type="button"
+                        aria-label="Remove from history"
+                        onClick={async (e) => {
+                            e.preventDefault()
+                            if (!movie.entryId) return
+                            setRemovingId(movie.entryId)
+                            try {
+                                await deleteWatchHistory(movie.entryId)
+                                setItems((prev) => prev.filter((item) => item.entryId !== movie.entryId))
+                                toast.success("Removed from history")
+                            } catch {
+                                toast.error("Unable to remove from history")
+                            } finally {
+                                setRemovingId(null)
+                            }
+                        }}
+                        className={cn(
+                            "h-8 w-8 flex items-center justify-center rounded-full bg-black/40 border border-white/10 text-zinc-400 transition-colors",
+                            "hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30",
+                            removingId === movie.entryId ? "opacity-50 cursor-not-allowed" : ""
+                        )}
+                        disabled={removingId === movie.entryId}
+                    >
+                        {removingId === movie.entryId ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                </div>
+            </MovieCard>
           </div>
         ))}
       </div>
@@ -192,15 +233,30 @@ export default function SeenMoviesPage() {
   }, [loading, error, items, removingId])
 
   return (
-    <main className="min-h-screen pb-28">
+    <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-emerald-500/30 pb-28">
       <Header />
-      <div className="container mx-auto px-4 py-8 mx-1 max-w-11/12">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 bg-primary/10 rounded-full">
-            <Check className="w-6 h-6 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">Movies You've Seen</h1>
+
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
+
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+        
+        {/* Header */}
+        <div className="flex flex-col gap-2 mb-10">
+            <Badge variant="outline" className="w-fit border-emerald-500/30 bg-emerald-500/10 text-emerald-300 uppercase tracking-widest text-[10px] gap-2 pl-2">
+                <Check className="h-3 w-3" />
+                Journal
+            </Badge>
+            <h1 className="text-4xl font-bold tracking-tight text-white">
+                Watch History
+            </h1>
+            <p className="text-zinc-400 text-sm">
+                Movies you've marked as seen.
+            </p>
         </div>
+
         {content}
       </div>
       <BottomNav />
