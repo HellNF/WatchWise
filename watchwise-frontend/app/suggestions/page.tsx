@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Carousel,
   CarouselContent,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/carousel"
 import GradientText from "@/components/ui/gradient-text"
 import PrismaticBurst from "@/components/ui/prismatic-burst"
-import { Sparkles, Check, RefreshCcw, Loader2 } from "lucide-react"
+import { Sparkles, Check, RefreshCcw, Loader2, History, Star, ThumbsUp } from "lucide-react"
 import {
   getRecommendedMovies,
   getRecommendations,
@@ -23,6 +24,7 @@ import {
   type MovieListItem,
   type RecommendationResponse,
   type WatchHistoryEntry,
+  getMovieDetails,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -88,12 +90,17 @@ function mapMovieListItem(item: MovieListItem): CarouselItem {
 
 function pickLastHighRated(history: WatchHistoryEntry[]) {
   if (!history.length) return undefined
+  // Ordina per data di visione (più recente prima)
   const sorted = [...history].sort((a, b) => {
     const aTime = a.watchedAt ? new Date(a.watchedAt).getTime() : 0
     const bTime = b.watchedAt ? new Date(b.watchedAt).getTime() : 0
     return bTime - aTime
   })
-  return sorted.find((entry) => (entry.rating ?? 0) >= 8)?.movieId
+  // Trova il primo con rating >= 8
+  const found = sorted.find((entry) => (entry.rating ?? 0) >= 8)?.movieId
+  if (!found) return undefined
+  // Normalize movieId if in format 'tmdb:12345'
+  return found.includes(":") ? found.split(":").pop() ?? found : found
 }
 
 function buildQuestionnaireContext() {
@@ -134,8 +141,12 @@ export default function SuggestionsPage() {
   const [burstQuality, setBurstQuality] = useState<"full" | "lite" | "micro" | "off">("full")
   const [isHeroVisible, setIsHeroVisible] = useState(true)
   const [isHeroHovered, setIsHeroHovered] = useState(false)
+  
+  // States for "Because you watched" section
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([])
   const [carouselLoading, setCarouselLoading] = useState(false)
+  const [sourceMovieTitle, setSourceMovieTitle] = useState<string>("")
+  
   const pageSize = 30
 
   const mergeItems = (current: SuggestionCard[], next: SuggestionCard[]) => {
@@ -175,16 +186,27 @@ export default function SuggestionsPage() {
     void loadSuggestions()
   }, [])
 
+  // Load "Because you watched" data
   useEffect(() => {
     const loadCarousel = async () => {
       setCarouselLoading(true)
       try {
         const history = await getWatchHistory()
         const lastHighRatedId = pickLastHighRated(history)
+        
         if (!lastHighRatedId) {
           setCarouselItems([])
           return
         }
+
+        // Fetch source movie details to show title
+        try {
+          const sourceDetails = await getMovieDetails(lastHighRatedId)
+          setSourceMovieTitle(sourceDetails.title)
+        } catch {
+          setSourceMovieTitle("your favorite")
+        }
+
         const recs = await getRecommendedMovies(lastHighRatedId, 10)
         setCarouselItems(recs.map(mapMovieListItem))
       } catch {
@@ -347,7 +369,7 @@ export default function SuggestionsPage() {
           {/* HERO SECTION */}
           <div
             id="suggestions-hero"
-            className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-zinc-900/60 mb-16 group outline-none focus:ring-2 focus:ring-amber-500/50 transition-all duration-500"
+            className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-zinc-900/60 mb-12 group outline-none focus:ring-2 focus:ring-amber-500/50 transition-all duration-500"
             onMouseEnter={() => setIsHeroHovered(true)}
             onMouseLeave={() => setIsHeroHovered(false)}
             onFocus={() => setIsHeroHovered(true)}
@@ -410,54 +432,79 @@ export default function SuggestionsPage() {
             </div>
           </div>
 
-          {/* HISTORY CAROUSEL */}
+          {/* HISTORY CAROUSEL SECTION */}
           {(carouselLoading || carouselItems.length > 0) && (
             <section className="mb-16">
-              <div className="flex items-end justify-between gap-4 mb-6 px-2">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-amber-500/80 font-bold mb-1">
-                    Because you watched
-                  </p>
-                  <h2 className="text-2xl font-bold text-white">Similar to your favorites</h2>
+              {/* Feature Container */}
+              <div className="relative rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-900/10 via-zinc-900/40 to-zinc-900/40 p-6 md:p-8 overflow-hidden backdrop-blur-sm">
+                {/* Decorative Glows */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none" />
+                
+                <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 mb-6 relative z-10">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-300 gap-1.5 py-1 px-3">
+                        <History className="h-3.5 w-3.5" />
+                        Because you watched
+                      </Badge>
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white mt-2">
+                      Similar to <span className="text-amber-400">{sourceMovieTitle || "your favorites"}</span>
+                    </h2>
+                    <p className="text-sm text-zinc-400 max-w-lg">
+                      Since you rated this movie highly (8+), here are some other titles with a similar vibe and style.
+                    </p>
+                  </div>
+                  
+                  {/* Visual Indicator of Rating */}
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/30 border border-white/5">
+                    <ThumbsUp className="h-4 w-4 text-amber-400" />
+                    <span className="text-xs font-medium text-zinc-300">Based on your 8+ ratings</span>
+                  </div>
                 </div>
-              </div>
 
-              {carouselLoading ? (
-                <div className="h-64 w-full flex items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02]">
-                  <Loader2 className="h-6 w-6 animate-spin text-zinc-600" />
-                </div>
-              ) : (
-                <Carousel opts={{ align: "start", loop: false }} className="w-full">
-                  <CarouselContent className="-ml-4">
-                    {carouselItems.map((movie) => (
-                      <CarouselItem
-                        key={movie.id}
-                        className="pl-4 basis-[160px] sm:basis-[200px] md:basis-[240px]"
-                      >
-                        <MovieCard
-                          id={movie.id}
-                          title={movie.title}
-                          poster={movie.poster}
-                          year={movie.year}
-                          rating={movie.rating}
-                          alwaysShowActions
+                {carouselLoading ? (
+                  <div className="h-56 w-full flex items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02]">
+                    <Loader2 className="h-8 w-8 animate-spin text-amber-500/50" />
+                  </div>
+                ) : (
+                  <Carousel opts={{ align: "start", loop: false }} className="w-full relative z-10">
+                    <CarouselContent className="-ml-4">
+                      {carouselItems.map((movie) => (
+                        <CarouselItem
+                          key={movie.id}
+                          className="pl-4 basis-[150px] sm:basis-[180px] md:basis-[220px]"
                         >
-                          <MovieQuickActions movieId={movie.id} />
-                        </MovieCard>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="hidden md:flex -left-4 border-white/10 bg-black/50 hover:bg-black/80 text-white" />
-                  <CarouselNext className="hidden md:flex -right-4 border-white/10 bg-black/50 hover:bg-black/80 text-white" />
-                </Carousel>
-              )}
+                          <div className="group relative transition-transform duration-300 hover:-translate-y-1">
+                            <MovieCard
+                              id={movie.id}
+                              title={movie.title}
+                              poster={movie.poster}
+                              year={movie.year}
+                              rating={movie.rating}
+                              alwaysShowActions
+                            >
+                              <MovieQuickActions movieId={movie.id} />
+                            </MovieCard>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="hidden md:flex -left-4 border-amber-500/20 bg-black/60 hover:bg-amber-500/20 hover:text-white hover:border-amber-500/50 text-amber-200" />
+                    <CarouselNext className="hidden md:flex -right-4 border-amber-500/20 bg-black/60 hover:bg-amber-500/20 hover:text-white hover:border-amber-500/50 text-amber-200" />
+                  </Carousel>
+                )}
+              </div>
             </section>
           )}
 
           {/* MAIN GRID */}
           <section>
             <div className="flex items-center justify-between mb-6 px-2">
-              <h2 className="text-2xl font-bold text-white">Top Suggestions</h2>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 bg-gradient-to-b from-violet-500 to-transparent rounded-full" />
+                <h2 className="text-2xl font-bold text-white">Top Suggestions</h2>
+              </div>
               <span className="text-xs font-mono text-zinc-500 bg-white/5 px-2 py-1 rounded border border-white/5">
                 {items.length} Titles
               </span>

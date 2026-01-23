@@ -11,6 +11,20 @@ import { LogoMagicStroke } from "./LogoMagicStroke"
 import { useRouter } from "next/navigation"
 import { clearSession } from "@/lib/auth"
 
+const AVATAR_OPTIONS = [
+  { id: "avatar_01", src: "/Avatar_1.png" },
+  { id: "avatar_02", src: "/Avatar_2.png" },
+  { id: "avatar_03", src: "/Avatar_3.png" },
+  { id: "avatar_04", src: "/Avatar_4.png" },
+  { id: "avatar_05", src: "/Avatar_5.png" },
+  { id: "avatar_06", src: "/Avatar_6.png" },
+  { id: "avatar_07", src: "/Avatar_7.png" },
+  { id: "avatar_08", src: "/Avatar_8.png" },
+  { id: "avatar_09", src: "/Avatar_9.png" },
+  { id: "avatar_10", src: "/Avatar_10.png" },
+  { id: "avatar_11", src: "/Avatar_11.png" },
+  { id: "avatar_12", src: "/Avatar_12.png" },
+]
 
 export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -105,7 +119,15 @@ export function Header() {
                 aria-label="Go to profile"
               >
                 <Avatar className="h-9 w-9 ring-2 ring-primary/20 cursor-pointer">
-                  <AvatarImage src={user.avatar ? `/Avatar_${user.avatar.replace('avatar_', '')}.png` : "/friendly-avatar-illustration.jpg"} />
+                  <AvatarImage
+                    src={(() => {
+                      if (user.avatar) {
+                        const found = AVATAR_OPTIONS.find(opt => opt.id === user.avatar);
+                        return found ? found.src : "/friendly-avatar-illustration.jpg";
+                      }
+                      return "/friendly-avatar-illustration.jpg";
+                    })()}
+                  />
                   <AvatarFallback className="bg-secondary text-secondary-foreground">
                     {user.username ? user.username.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase() : "U"}
                   </AvatarFallback>

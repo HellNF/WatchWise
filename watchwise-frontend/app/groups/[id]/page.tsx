@@ -43,13 +43,13 @@ import { cn } from "@/lib/utils"
 const SESSION_STORAGE_KEY = (groupId: string) => `ww-group-session:${groupId}`
 
 const AVATAR_OPTIONS = [
-  { id: "avatar_01", src: "/avatar_1.png" },
-  { id: "avatar_02", src: "/avatar_2.png" },
-  { id: "avatar_03", src: "/avatar_3.png" },
-  { id: "avatar_04", src: "/avatar_4.png" },
-  { id: "avatar_05", src: "/avatar_5.png" },
-  { id: "avatar_06", src: "/avatar_6.png" },
-  { id: "avatar_07", src: "/avatar_7.png" },
+  { id: "avatar_01", src: "/Avatar_1.png" },
+  { id: "avatar_02", src: "/Avatar_2.png" },
+  { id: "avatar_03", src: "/Avatar_3.png" },
+  { id: "avatar_04", src: "/Avatar_4.png" },
+  { id: "avatar_05", src: "/Avatar_5.png" },
+  { id: "avatar_06", src: "/Avatar_6.png" },
+  { id: "avatar_07", src: "/Avatar_7.png" },
   { id: "avatar_08", src: "/Avatar_8.png" },
   { id: "avatar_09", src: "/Avatar_9.png" },
   { id: "avatar_10", src: "/Avatar_10.png" },
