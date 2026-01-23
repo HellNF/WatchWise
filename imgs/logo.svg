@@ -1,0 +1,21 @@
+<svg width="140" height="80" viewBox="0 0 140 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <defs>
+    <linearGradient id="magic-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed" /> <stop offset="50%" stop-color="#2dd4bf" /> <stop offset="100%" stop-color="#f59e0b" /> </linearGradient>
+  </defs>
+
+  <path
+    d="M10 15 L30 65 L50 25 L70 65 L90 25"
+    stroke="url(#magic-grad)"
+    stroke-width="24"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <g transform="translate(90, 10) scale(1.5)">
+    <path
+      d="M15 0 C15 0 18 10 28 15 C 18 20 15 30 15 30 C 15 30 12 20 2 15 C 12 10 15 0 15 0 Z"
+      fill="#f59e0b"
+    />
+  </g>
+</svg>
