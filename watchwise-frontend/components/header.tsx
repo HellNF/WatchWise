@@ -8,15 +8,29 @@ import Link from "next/link"
 import { LogoDisconnectedSpark } from "@/components/LogoDisconnectedSpark"
 import { LogoMagicStroke } from "./LogoMagicStroke"
 
+import { useRouter } from "next/navigation"
+import { clearSession } from "@/lib/auth"
+
 
 export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<{ username?: string; avatar?: string } | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const hasUser = Boolean(localStorage.getItem("watchwise-user"))
+    const raw = localStorage.getItem("watchwise-user")
     const hasToken = Boolean(localStorage.getItem("watchwise-token"))
-    setIsLoggedIn(hasUser || hasToken)
+    setIsLoggedIn(Boolean(raw) || hasToken)
+    if (raw) {
+      try {
+        setUser(JSON.parse(raw))
+      } catch {
+        setUser(null)
+      }
+    } else {
+      setUser(null)
+    }
   }, [])
 
   return (
@@ -82,14 +96,23 @@ export function Header() {
         </nav>
         
         <div className="flex items-center gap-4">
-          {isLoggedIn ? (
-            <>
+          {isLoggedIn && user ? (
+            <div className="relative group  flex items-center gap-2">
               <span className="text-sm text-muted-foreground hidden sm:block">Tonight</span>
-              <Avatar className="h-9 w-9 ring-2 ring-primary/20">
-                <AvatarImage src="/friendly-avatar-illustration.jpg" />
-                <AvatarFallback className="bg-secondary text-secondary-foreground">M</AvatarFallback>
-              </Avatar>
-            </>
+              <button
+                className="focus:outline-none"
+                onClick={() => router.push("/profile")}
+                aria-label="Go to profile"
+              >
+                <Avatar className="h-9 w-9 ring-2 ring-primary/20 cursor-pointer">
+                  <AvatarImage src={user.avatar ? `/Avatar_${user.avatar.replace('avatar_', '')}.png` : "/friendly-avatar-illustration.jpg"} />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+                    {user.username ? user.username.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase() : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost">

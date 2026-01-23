@@ -1,3 +1,5 @@
+import { getStoredToken } from "@/lib/auth"
+
 type ApiErrorDetails = {
   status: number
   statusText: string
@@ -46,7 +48,13 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
   }
 
   const url = `${apiRoot}${path.startsWith("/") ? "" : "/"}${path}`
-  const headers = new Headers({ Authorization: DEV_AUTH_HEADER })
+  const headers = new Headers()
+  const token = getStoredToken()
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  } else if (process.env.NODE_ENV !== "production") {
+    headers.set("Authorization", DEV_AUTH_HEADER)
+  }
 
   if (options.headers) {
     if (options.headers instanceof Headers) {

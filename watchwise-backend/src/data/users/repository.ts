@@ -14,11 +14,25 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return collection().findOne({ email });
 }
 
+export async function getUserByOAuth(
+  oauthProvider: string,
+  oauthId: string
+): Promise<User | null> {
+  return collection().findOne({ oauthProvider, oauthId });
+}
+
 export async function createUser(
   data: Omit<User, "_id">
 ): Promise<User> {
-  const result = await collection().insertOne(data as User);
-  return { _id: result.insertedId, ...data };
+  try {
+    const result = await collection().insertOne(data as User);
+    return { _id: result.insertedId, ...data };
+  } catch (err: any) {
+    if (err.code === 11000 && err.keyPattern?.username) {
+      throw new Error("USERNAME_ALREADY_EXISTS");
+    }
+    throw err;
+  }
 }
 export async function updateUser(
   userId: string,
@@ -29,6 +43,24 @@ export async function updateUser(
     {
       $set: {
         ...data,
+        updatedAt: new Date()
+      }
+    }
+  );
+}
+
+export async function linkOAuthToUser(
+  userId: string,
+  oauthProvider: string,
+  oauthId: string
+) {
+  await collection().updateOne(
+    { _id: new ObjectId(userId) },
+    {
+      $set: {
+        authProvider: "oauth",
+        oauthProvider,
+        oauthId,
         updatedAt: new Date()
       }
     }

@@ -14,6 +14,7 @@ type OAuthOptions = {
 const AUTH_INTENT_KEY = "watchwise-auth-intent"
 const TOKEN_KEY = "watchwise-token"
 const USER_KEY = "watchwise-user"
+const TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 
 function isBrowser() {
   return typeof window !== "undefined"
@@ -81,9 +82,26 @@ export function storeSession(session: { token?: string; user?: unknown }) {
   if (!isBrowser()) return
   if (session.token) {
     localStorage.setItem(TOKEN_KEY, session.token)
+    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(session.token)}; Path=/; Max-Age=${TOKEN_COOKIE_MAX_AGE}; SameSite=Lax`
   }
   if (session.user) {
     localStorage.setItem(USER_KEY, JSON.stringify(session.user))
+  }
+}
+
+export function getStoredToken() {
+  if (!isBrowser()) return null
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function getStoredUser<T = unknown>() {
+  if (!isBrowser()) return null
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return null
   }
 }
 
@@ -91,4 +109,5 @@ export function clearSession() {
   if (!isBrowser()) return
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  document.cookie = `${TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax`
 }

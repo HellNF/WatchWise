@@ -1,17 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Carousel,
   CarouselContent,
@@ -23,8 +15,17 @@ import {
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
 import { cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight, Film, Sparkles, Users } from "lucide-react"
+import { 
+  ChevronRight, 
+  Film, 
+  Sparkles, 
+  Users, 
+  Play, 
+  Star, 
+  Calendar 
+} from "lucide-react"
 
+// --- TYPES ---
 export type HomeHeroItem = {
   id: string
   title: string
@@ -54,6 +55,8 @@ export type HomeCategory = {
   href?: string
 }
 
+// --- COMPONENTS ---
+
 function CategoryRow({
   title,
   subtitle,
@@ -66,43 +69,41 @@ function CategoryRow({
   href?: string
 }) {
   const list = useMemo(() => items.slice(0, 15), [items])
-  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   if (!list.length) return null
 
-  const handleScroll = (direction: "left" | "right") => {
-    const node = scrollRef.current
-    if (!node) return
-    const delta = Math.round(node.clientWidth * 0.8)
-    node.scrollBy({ left: direction === "left" ? -delta : delta, behavior: "smooth" })
-  }
-
   return (
-    <section className="py-8 border-t border-border/40">
-      <div className="flex flex-col gap-4 px-4 md:px-6 lg:px-8 max-w-10/12 mx-auto">
+    <section className="py-10 relative">
+      <div className="flex flex-col gap-6 px-4 md:px-6 lg:px-8 max-w-[1400px] mx-auto">
+        
+        {/* Row Header */}
         <div className="flex items-end justify-between gap-4">
-          <div>
-            {subtitle ? (
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="space-y-1">
+            {subtitle && (
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
                 {subtitle}
               </p>
-            ) : null}
-            <h2 className="text-2xl font-semibold">{title}</h2>
+            )}
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+              {title}
+            </h2>
           </div>
-          {href ? (
-            <Button asChild variant="ghost" className="text-sm">
-              <Link href={href}>Vedi tutti</Link>
-            </Button>
-          ) : null}
+          {href && (
+            <Link 
+              href={href} 
+              className="group flex items-center gap-1 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+            >
+              See all 
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          )}
         </div>
 
-        <div className="relative">
-          <div
-            ref={scrollRef}
-            className="flex gap-4 overflow-x-auto overflow-y-hidden pb-2 scroll-smooth hide-scrollbar"
-          >
+        {/* Carousel Row */}
+        <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
+          <CarouselContent className="-ml-4">
             {list.map((movie) => (
-              <div key={movie.id} className="w-36 sm:w-40 md:w-44 shrink-0">
+              <CarouselItem key={movie.id} className="pl-4 basis-[150px] sm:basis-[180px] md:basis-[220px]">
                 <MovieCard
                   id={movie.id}
                   title={movie.title}
@@ -111,33 +112,19 @@ function CategoryRow({
                   rating={movie.rating}
                   isDiscovery={movie.isDiscovery}
                   reason={movie.reason}
-                  children={<MovieQuickActions movieId={movie.id} />}
-                />
-              </div>
+                >
+                  <MovieQuickActions movieId={movie.id} />
+                </MovieCard>
+              </CarouselItem>
             ))}
-          </div>
-
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            onClick={() => handleScroll("left")}
-            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 rounded-full"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            onClick={() => handleScroll("right")}
-            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 rounded-full"
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+          </CarouselContent>
+          {/* Floating Navigation Buttons */}
+          <div className="hidden md:block pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-zinc-950 to-transparent z-10" />
+          <div className="hidden md:block pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent z-10" />
+          
+          <CarouselPrevious className="hidden md:flex -left-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
+          <CarouselNext className="hidden md:flex -right-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
+        </Carousel>
       </div>
     </section>
   )
@@ -156,26 +143,18 @@ export function HomePageClient({
 
   useEffect(() => {
     if (!api) return
-
-    const onSelect = () => {
-      setActiveIndex(api.selectedScrollSnap())
-    }
-
+    const onSelect = () => setActiveIndex(api.selectedScrollSnap())
     onSelect()
     api.on("select", onSelect)
-
-    return () => {
-      api.off("select", onSelect)
-    }
+    return () => { api.off("select", onSelect) }
   }, [api])
 
+  // Auto-play hero
   useEffect(() => {
     if (!api) return
-
     const interval = setInterval(() => {
       api.scrollNext()
     }, 8000)
-
     return () => clearInterval(interval)
   }, [api])
 
@@ -183,151 +162,167 @@ export function HomePageClient({
   const heroBackdrop = activeHero?.backdrop || activeHero?.poster || "/placeholder.svg"
 
   return (
-    <div>
-      <section className="relative min-h-[70vh] overflow-hidden">
-        <div className="absolute inset-0">
+    <div className="min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30">
+      
+      {/* --- BACKGROUND AMBIENCE --- */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[600px] h-[600px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
+
+      {/* --- HERO SECTION --- */}
+      <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden group">
+        
+        {/* Background Image with Fade */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-zinc-950 transition-opacity duration-700" /> 
           <img
+            key={activeHero?.id} // Key forces fade animation on change
             src={heroBackdrop}
             alt={activeHero?.title ?? "Hero"}
-            className="h-full w-full object-cover object-top scale-105"
+            className="h-full w-full object-cover object-top animate-in fade-in zoom-in-105 duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-background/5" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/20 to-transparent" />
+          {/* Complex Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-950/30 to-transparent" />
         </div>
 
-        <div className="relative z-10 px-4 md:px-6 lg:px-8 max-w-10/12 mx-auto py-16 lg:py-24">
-          <div className="max-w-2xl space-y-6">
+        {/* Hero Content */}
+        <div className="relative z-10 h-full flex flex-col justify-end pb-32 px-4 md:px-8 lg:px-12 max-w-[1400px] mx-auto">
+          <div className="max-w-3xl space-y-6 animate-in slide-in-from-bottom-10 fade-in duration-700">
+            
+            {/* Badges */}
             <div className="flex items-center gap-3">
-              <Badge className="gap-1 bg-primary/90 text-primary-foreground">
-                <Sparkles className="h-3 w-3" />
-                {activeHero?.badge ?? "In evidenza"}
+              <Badge className="gap-1.5 py-1.5 px-3 bg-violet-600 hover:bg-violet-600 text-white border-0 shadow-[0_0_15px_rgba(124,58,237,0.4)]">
+                <Sparkles className="h-3.5 w-3.5 fill-white" />
+                {activeHero?.badge ?? "Featured"}
               </Badge>
-              <Badge variant="outline" className="gap-1">
-                <Film className="h-3 w-3" />
-                Streaming picks
+              <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-white/20 bg-black/20 backdrop-blur-md text-zinc-200">
+                <Film className="h-3.5 w-3.5" />
+                {activeHero?.year ? `Released ${activeHero.year}` : "Trending"}
               </Badge>
             </div>
 
+            {/* Title & Overview */}
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
-                {activeHero?.title ?? "Scopri il tuo prossimo film"}
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] drop-shadow-2xl">
+                {activeHero?.title ?? "Discover Movies"}
               </h1>
-              <p className="text-base md:text-lg text-muted-foreground line-clamp-3">
-                {activeHero?.overview ??
-                  "Una selezione dinamica di film pensata per te, con nuove scoperte ogni giorno."}
-              </p>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                {typeof activeHero?.year === "number" ? (
-                  <span>{activeHero.year}</span>
-                ) : null}
-                {typeof activeHero?.rating === "number" ? (
-                  <span>· {activeHero.rating.toFixed(1)} / 10</span>
-                ) : null}
+              
+              <div className="flex items-center gap-4 text-sm font-medium text-zinc-300">
+                {typeof activeHero?.rating === "number" && (
+                  <span className="flex items-center gap-1.5 text-amber-400">
+                    <Star className="h-4 w-4 fill-amber-400" /> 
+                    {activeHero.rating.toFixed(1)} Rating
+                  </span>
+                )}
+                {typeof activeHero?.year === "number" && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-zinc-500" />
+                    {activeHero.year}
+                  </span>
+                )}
               </div>
+
+              <p className="text-lg text-zinc-300/90 line-clamp-3 max-w-2xl leading-relaxed">
+                {activeHero?.overview ?? "A dynamic selection tailored for you."}
+              </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              {activeHero?.id ? (
-                <Button asChild size="lg">
-                  <Link href={`/movie/${encodeURIComponent(activeHero.id)}`}>Dettagli</Link>
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4 pt-2">
+              {activeHero?.id && (
+                <Button asChild size="lg" className="h-14 px-8 rounded-full bg-white text-black hover:bg-zinc-200 font-bold text-base shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                  <Link href={`/movie/${encodeURIComponent(activeHero.id)}`}>
+                    <Play className="mr-2 h-5 w-5 fill-black" /> Watch Details
+                  </Link>
                 </Button>
-              ) : null}
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/suggestions">Suggeriti per te</Link>
+              )}
+              <Button variant="outline" size="lg" asChild className="h-14 px-8 rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-white backdrop-blur-md">
+                <Link href="/suggestions">
+                  <Sparkles className="mr-2 h-5 w-5" /> Recommended
+                </Link>
               </Button>
             </div>
           </div>
+        </div>
 
-          {items.length ? (
-            <div className="mt-12">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Cambia atmosfera
-                </p>
-                <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{activeIndex + 1}</span>
-                  <span className="opacity-50">/</span>
-                  <span>{items.length}</span>
-                </div>
-              </div>
+        {/* Floating Carousel Navigation (Glass Dock) */}
+        {items.length > 0 && (
+          <div className="absolute bottom-8 right-4 md:right-12 z-20 max-w-[50%] lg:max-w-[40%] hidden md:block">
+            <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-2">
               <Carousel
                 opts={{ align: "start", loop: true }}
                 setApi={setApi}
-                className="relative"
+                className="w-full"
               >
-                <CarouselContent className="-ml-3">
+                <CarouselContent className="-ml-2">
                   {items.map((movie, index) => (
-                    <CarouselItem key={movie.id} className="basis-1/2 sm:basis-1/3 lg:basis-1/5 pl-3">
+                    <CarouselItem key={movie.id} className="basis-1/3 lg:basis-1/4 pl-2">
                       <button
                         onClick={() => api?.scrollTo(index)}
                         className={cn(
-                          "group w-full text-left transition",
-                          index === activeIndex ? "opacity-100" : "opacity-70 hover:opacity-100"
+                          "relative aspect-video w-full overflow-hidden rounded-lg border transition-all duration-300",
+                          index === activeIndex 
+                            ? "border-violet-500 ring-1 ring-violet-500/50 opacity-100" 
+                            : "border-transparent opacity-50 hover:opacity-80"
                         )}
                       >
-                        <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-border/30">
-                          <img
-                            src={movie.poster || "/placeholder.svg"}
-                            alt={movie.title}
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-                        </div>
-                        <p className="mt-2 text-sm font-medium line-clamp-1">
-                          {movie.title}
-                        </p>
+                        <img
+                          src={movie.backdrop || movie.poster || "/placeholder.svg"}
+                          alt={movie.title}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/20" />
                       </button>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="hidden lg:flex -left-6" />
-                <CarouselNext className="hidden lg:flex -right-6" />
               </Carousel>
             </div>
-          ) : null}
+          </div>
+        )}
+      </section>
+
+      {/* --- MOVIE NIGHT BANNER --- */}
+      <section className="relative z-10 px-4 md:px-6 lg:px-8 max-w-[1400px] mx-auto -mt-8 mb-8">
+        <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-violet-900/40 via-zinc-900/60 to-zinc-900/60 backdrop-blur-xl shadow-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
+          
+          {/* Decorative Glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/20 blur-[100px] rounded-full pointer-events-none group-hover:bg-violet-600/30 transition-colors" />
+
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-900/30">
+              <Users className="h-8 w-8 text-white" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-white">Movie Night with Friends?</h3>
+              <p className="text-zinc-400 max-w-md">
+                Create a group, swipe on movies, and let our AI find the perfect match for everyone.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 relative z-10 w-full md:w-auto">
+            <Button asChild size="lg" className="w-full md:w-auto rounded-full bg-white text-black hover:bg-zinc-200 font-bold">
+              <Link href="/groups">Create Group</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
-      <section className="py-10">
-        <div className="px-4 md:px-6 lg:px-8 max-w-10/12 mx-auto">
-          <Card className="bg-gradient-to-br from-card via-card to-primary/10 border-border/40">
-            <CardHeader className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle>Gruppi per scegliere insieme</CardTitle>
-                  <CardDescription>
-                    Prepara serate film con gli amici: crea un gruppo, vota e trova il film perfetto.
-                  </CardDescription>
-                </div>
-                <Badge className="ml-auto" variant="outline">
-                  Coming soon
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Invita amici, condividi le preferenze e lascia che WatchWise scelga il titolo migliore per tutti.
-            </CardContent>
-            <CardFooter>
-              <Button disabled className="w-full sm:w-auto">
-                Crea un gruppo
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </section>
+      {/* --- CATEGORY ROWS --- */}
+      <div className="relative z-10 pb-20">
+        {categories.map((category) => (
+          <CategoryRow
+            key={category.key}
+            title={category.title}
+            subtitle={category.subtitle}
+            items={category.items}
+            href={category.href}
+          />
+        ))}
+      </div>
 
-      {categories.map((category) => (
-        <CategoryRow
-          key={category.key}
-          title={category.title}
-          subtitle={category.subtitle}
-          items={category.items}
-          href={category.href}
-        />
-      ))}
     </div>
   )
 }

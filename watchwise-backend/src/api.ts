@@ -5,6 +5,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { connectMongo } from "./config/mongodb";
 
+import { authRoutes } from "./auth/routes";
 import { userRoutes } from "./data/users/routes";
 import { pcsRoutes } from "./pcs/routes";
 import { tmdbTestRoute } from "./adapters/tmdb/test-route";
@@ -34,6 +35,7 @@ const start = async () => {
     });
 
     // REGISTRA ROUTES
+    await authRoutes(app);
     await userRoutes(app);
     await pcsRoutes(app);
     await tmdbTestRoute(app);

@@ -7,6 +7,8 @@ import { Chrome, Github, ArrowLeft, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { startOAuth, type OAuthProviderId } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { useSearchParams } from "next/navigation"
+import { LogoMagicStroke } from "@/components/LogoMagicStroke"
 
 // --- LOGO COMPONENT (Disconnected Spark) ---
 // Integrato qui per comodità, puoi importarlo dal tuo file separato
@@ -63,6 +65,9 @@ const providers: Array<{
 ]
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirectTo") ?? "/profile"
+
   return (
     <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-zinc-950 text-foreground selection:bg-mint/30">
       
@@ -108,7 +113,7 @@ export default function LoginPage() {
                 transition={{ delay: 0.2, type: "spring" }}
                 className="mb-8"
               >
-                <LogoDisconnectedSpark className="w-32 h-auto drop-shadow-[0_0_15px_rgba(124,58,237,0.3)]" />
+                <LogoMagicStroke className="w-32 h-auto drop-shadow-[0_0_15px_rgba(124,58,237,0.3)]" />
               </motion.div>
 
               <div className="text-center space-y-2 mb-8">
@@ -143,7 +148,7 @@ export default function LoginPage() {
                       )}
                       onClick={() =>
                         startOAuth(provider.id, {
-                          redirectTo: "/profile",
+                          redirectTo,
                         })
                       }
                     >

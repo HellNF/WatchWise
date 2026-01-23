@@ -12,6 +12,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@r
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Sparkles, Users, Zap, Star, Menu, SlidersHorizontal, Film, ArrowRight, CheckCircle2 } from "lucide-react"
 import {LogoMagicStroke} from "@/components/LogoMagicStroke"
+import { useRouter } from "next/navigation"
 
 // --- Mock Data & Components ---
 // (Dati invariati per coerenza)
@@ -75,7 +76,7 @@ function StickyHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { scrollY } = useScroll()
   const [scrolled, setScrolled] = useState(false)
-
+  const router = useRouter()
   React.useEffect(() => {
     return scrollY.onChange((latest) => setScrolled(latest > 20))
   }, [scrollY])
@@ -100,8 +101,13 @@ function StickyHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="hidden md:inline-flex hover:bg-white/5" size="sm">Sign in</Button>
-          <Button className="glow-accent font-semibold rounded-full px-6" size="sm">Get Started</Button>
+          <Button variant="ghost" className="hidden md:inline-flex hover:bg-white/5" size="sm" onClick={()=>{
+            router.push('/login')
+          }}>Sign in</Button>
+          <Button className="glow-accent font-semibold rounded-full px-6" size="sm" onClick={()=>{
+            router.push('/register')
+          }
+          }>Get Started</Button>
           <button className="md:hidden p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)}>
             <Menu />
           </button>
@@ -121,7 +127,9 @@ function StickyHeader() {
                  <a key={item} href="#" className="text-lg font-medium" onClick={() => setMenuOpen(false)}>{item}</a>
                ))}
                <div className="h-px bg-border/50 my-2" />
-               <Button variant="outline" className="w-full justify-start">Sign in</Button>
+               <Button variant="outline" className="w-full justify-start" onClick={()=>{
+                router.push('/login')
+               }}>Sign in</Button>
              </div>
           </motion.div>
         )}
@@ -132,6 +140,7 @@ function StickyHeader() {
 
 function Hero() {
   const [movies, setMovies] = useState<MovieListItem[]>([])
+  const router = useRouter() 
   useEffect(() => {
     getMoviesByCategory("trending", { limit: 3 }).then(setMovies)
   }, [])
@@ -165,7 +174,7 @@ function Hero() {
               <Link href="/register">Create free account</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="rounded-full px-8 text-base border-white/10 hover:bg-white/5 h-12 group">
-              <Link href="/demo" className="flex items-center">
+              <Link href="/home" className="flex items-center">
                 <span className="mr-2">View Demo</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -471,6 +480,7 @@ function FAQ() {
 }
 
 function FinalCTA() {
+  const router = useRouter()
   return (
     <section className="py-24 px-6">
       <div className="max-w-5xl mx-auto rounded-[3rem] bg-gradient-to-b from-zinc-900 to-black border border-white/10 p-12 md:p-24 text-center relative overflow-hidden">
@@ -481,7 +491,7 @@ function FinalCTA() {
             <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">Ready to watch something <br/> actually good?</h2>
             <p className="text-xl text-muted-foreground mb-10 max-w-xl">Join thousands of users who stopped scrolling and started watching.</p>
             <div className="flex gap-4">
-               <Button size="lg" className="rounded-full px-10 h-14 text-lg font-semibold glow-accent">Get Started Free</Button>
+              <Button size="lg" className="rounded-full px-10 h-14 text-lg font-semibold glow-accent" onClick={() => {router.push('/register')}} >Get Started Free</Button>
             </div>
             <p className="mt-6 text-sm text-muted-foreground/60">No credit card required • Cancel anytime</p>
          </div>

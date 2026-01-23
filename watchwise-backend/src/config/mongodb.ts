@@ -17,6 +17,8 @@ export async function connectMongo(): Promise<Db> {
   await client.connect();
 
   db = client.db(dbName);
+  // Ensure unique index on username
+  await db.collection("users").createIndex({ username: 1 }, { unique: true });
   console.log("✅ Connected to MongoDB");
 
   return db;

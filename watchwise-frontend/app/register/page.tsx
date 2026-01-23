@@ -7,6 +7,7 @@ import { Chrome, Github, ArrowLeft, Sparkles, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { startOAuth, type OAuthProviderId } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { LogoMagicStroke } from "@/components/LogoMagicStroke"
 
 // --- LOGO COMPONENT (Disconnected Spark) ---
 const LogoDisconnectedSpark = ({ className }: { className?: string }) => (
@@ -100,7 +101,7 @@ export default function RegisterPage() {
               
               {/* Logo */}
               <div className="mb-6">
-                <LogoDisconnectedSpark className="w-28 h-auto drop-shadow-[0_0_15px_rgba(245,158,11,0.2)]" />
+                <LogoMagicStroke className="w-28 h-auto drop-shadow-[0_0_15px_rgba(245,158,11,0.2)]" />
               </div>
 
               <div className="text-center space-y-2 mb-8">

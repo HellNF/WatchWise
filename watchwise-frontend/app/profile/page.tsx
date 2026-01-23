@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { clearSession } from "@/lib/auth"
 
 const moodOptions = [
   "Chill",
@@ -211,6 +213,7 @@ function ListCard({ list }: { list: UserList }) {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([])
   const [selectedMoods, setSelectedMoods] = useState<string[]>([])
@@ -642,6 +645,10 @@ export default function ProfilePage() {
             <Button
               variant="ghost"
               className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              onClick={() => {
+                clearSession()
+                router.replace("/login")
+              }}
             >
               <LogOut className="w-4 h-4 mr-2" /> Sign Out
             </Button>

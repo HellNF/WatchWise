@@ -4,6 +4,7 @@ export type ErrorCode =
   | "INVALID_INPUT"
   | "UNAUTHORIZED"
   | "NOT_FOUND"
+  | "USERNAME_TAKEN"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
