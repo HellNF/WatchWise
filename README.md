@@ -1,5 +1,5 @@
 
-# <img src="imgs/logo.png" alt="WatchWise Logo" height="64" style="vertical-align:middle;"/> WatchWise
+# <img src="imgs/logo.svg" alt="WatchWise Logo" height="64" style="vertical-align:middle;"/> WatchWise
 
 Welcome to **WatchWise** — your smart, social movie recommendation platform.
 
@@ -41,13 +41,13 @@ WatchWise is a modern web application that helps you discover, track, and share 
 ## Gallery
 
 <div align="center">
-	<img src="imgs/logo.png" alt="WatchWise Logo" height="80" style="margin-bottom:16px;"/>
+	<img src="imgs/landingpage.png" alt="WatchWise Cover Screenshot" width="600"/>
 	<br/>
-	<img src="imgs/cover-screenshot.png" alt="WatchWise Cover Screenshot" width="600"/>
+	<img src="imgs/homepage.png" alt="Profile Page" width="400" style="margin:8px;"/>
 	<br/>
-	<img src="imgs/suggestions.png" alt="Suggestions Page" width="400" style="margin:8px;"/>
-	<img src="imgs/profile.png" alt="Profile Page" width="400" style="margin:8px;"/>
-	<img src="imgs/group-recommendation.png" alt="Group Recommendation" width="400" style="margin:8px;"/>
+	<img src="imgs/raccomendationsPage.png" alt="Suggestions Page" width="400" style="margin:8px;"/>
+	<br/>
+	<img src="imgs/groupRaccomendationsPage.png" alt="Group Recommendation" width="400" style="margin:8px;"/>
 </div>
 
 > All images and the logo are in the `imgs/` folder for easy reference.
