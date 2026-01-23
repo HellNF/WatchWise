@@ -20,7 +20,7 @@ export default function QuestionnairePage() {
     } catch (error) {
       console.error("Failed to save preferences", error)
     }
-    router.push("/home")
+    router.back()
   }
 
   const handleSkip = () => {

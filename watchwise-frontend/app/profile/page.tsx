@@ -828,8 +828,26 @@ export default function ProfilePage() {
                   onClick={async () => {
                     setSavingAvatar(true)
                     try {
-                      await patchProfile({ avatar: option.id })
-                      setProfile((prev) => (prev ? { ...prev, avatar: option.id } : prev))
+                      // Always send username to avoid null in PATCH
+                      await patchProfile({
+                        avatar: option.id,
+                        username: profile?.username || undefined,
+                      })
+                      setProfile((prev) => {
+                        const updated = prev ? { ...prev, avatar: option.id } : prev
+                        // Update localStorage user data as well
+                        if (updated) {
+                          try {
+                            const raw = localStorage.getItem("watchwise-user")
+                            if (raw) {
+                              const parsed = JSON.parse(raw)
+                              parsed.avatar = option.id
+                              localStorage.setItem("watchwise-user", JSON.stringify(parsed))
+                            }
+                          } catch {}
+                        }
+                        return updated
+                      })
                       toast.success("Avatar updated")
                       setAvatarPickerOpen(false)
                     } catch {
