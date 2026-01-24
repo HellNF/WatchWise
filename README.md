@@ -26,6 +26,13 @@ WatchWise is a modern web application that helps you discover, track, and share 
 
 ---
 
+
+## API Documentation
+
+The full backend API documentation is available here: [https://watchwise.docs.apiary.io/](https://watchwise.docs.apiary.io/)
+
+---
+
 ## Quick Start
 
 1. **Clone the repository:**

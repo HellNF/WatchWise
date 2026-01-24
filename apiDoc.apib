@@ -1,0 +1,912 @@
+FORMAT: 1A
+HOST: https://api.watchwise.example.com
+
+# WatchWise API
+
+WatchWise is a movie recommendation platform that combines personal film discovery with group decision support.
+This API exposes:
+- OAuth sign-in (Google, GitHub)
+- Users and profiles
+- Preferences (explicit + questionnaire events)
+- Watch history
+- Lists
+- Groups and group sessions
+- Process Centric Services (PCS) recommendations (user + group)
+- Movie data via TMDB adapter
+
+## Authentication
+
+Most endpoints require a Bearer token returned by the OAuth callback redirect.
+
+**Header**
+- `Authorization: Bearer <token>`
+
+**Common Errors**
+- `401 Unauthorized` invalid or missing token
+- `403 Forbidden` user not allowed
+- `404 Not Found`
+- `409 Conflict` session not ready or business constraint
+- `422 Unprocessable Entity` validation error
+
+---
+
+# Health [/health]
+
+## Health Check [GET]
+
+Returns service status.
+
++ Response 200 (application/json)
+    + Attributes (HealthStatus)
+
+---
+
+# OAuth [/oauth]
+
+OAuth endpoints are redirection-based:
+- `/oauth/:provider` redirects to the provider authorization page.
+- `/oauth/:provider/callback` redirects back to the UI with a token and a safe user object.
+
+## Start OAuth Flow [GET /oauth/{provider}?callbackUrl={callbackUrl}&redirectTo={redirectTo}]
+
++ Parameters
+    + provider: `google` (string) - OAuth provider (`google` or `github`)
+    + callbackUrl: `https://watchwise.example.com/auth/callback` (string) - Required. UI callback URL.
+    + redirectTo: `/profile` (string, optional) - Optional UI path after login.
+
++ Response 302
+
+## OAuth Callback [GET /oauth/{provider}/callback?code={code}&state={state}&error={error}&username={username}]
+
+The backend exchanges `code` for an access token, fetches the OAuth profile, ensures a local user exists,
+signs a session token, and then redirects to `callbackUrl` with query params:
+- `token=<jwt>`
+- `user=<json string>`
+- or `error=<message>`
+
+If the username is already taken, the backend may require a retry by passing `username` (UI-driven).
+
++ Parameters
+    + provider: `google` (string)
+    + code: `AUTH_CODE` (string, optional)
+    + state: `STATE` (string, optional)
+    + error: `access_denied` (string, optional)
+    + username: `new_username` (string, optional) - Used only when the UI retries with a different username.
+
++ Response 302
+
+---
+
+# Users [/users]
+
+User-related endpoints. In WatchWise, most users are created via OAuth. Some endpoints may still be used
+to fetch and update the local profile.
+
+## Get My Profile [GET /users/me]
+
+Returns the authenticated user's profile.
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (User)
+
+## Get User By Id [GET /users/{id}]
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string) - User ID (ObjectId string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (User)
+
+## Update My Profile [PATCH /users/me]
+
+Update username and/or avatar for the authenticated user.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (UserUpdate)
+
++ Response 200 (application/json)
+    + Attributes (User)
+
+## Delete My Account [DELETE /users/me]
+
+Deletes the authenticated user and related data (implementation-dependent).
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+---
+
+# Preferences [/preferences]
+
+Preferences are stored as **events**. They can come from:
+- `explicit`: user manually likes/dislikes genres, actors, directors, etc.
+- `questionnaire`: daily/periodic answers that influence the preference profile
+
+The recommendation engine builds a **preference profile** by aggregating events.
+
+## List My Preference Events [GET /preferences/me]
+
+Returns all preference events for the authenticated user.
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (array[PreferenceEvent])
+
+## Add Preference Event [POST /preferences]
+
+Creates a single preference event.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (PreferenceEventCreate)
+
++ Response 201 (application/json)
+    + Attributes (PreferenceEvent)
+
+## Bulk Add Preference Events [POST /preferences/bulk]
+
+Creates multiple preference events in one request.
+Useful when the UI saves a whole questionnaire page at once.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (PreferenceEventBulkCreate)
+
++ Response 201 (application/json)
+    + Attributes
+        + created: (array[PreferenceEvent])
+
+## Delete Preference Event [DELETE /preferences/{id}]
+
+Deletes a single preference event by id.
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string) - Preference event id
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+## Delete Preference Events By Source [DELETE /preferences/source/{source}]
+
+Deletes all preference events of a given source for the authenticated user.
+Example: clear all `explicit` likes, or clear all `questionnaire` events.
+
++ Parameters
+    + source: `explicit` (string) - `explicit` or `questionnaire`
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+## Get Group Questionnaire Status [GET /groups/{groupId}/questionnaire-status]
+
+Returns the questionnaire completion status for each member of a group, used as a readiness gate
+before group recommendations.
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string) - Group ID
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (GroupQuestionnaireStatus)
+
+---
+
+# Watch History [/watch-history]
+
+Watch history tracks what the user watched and optional rating/completion.
+
+## List My Watch History [GET /watch-history/me]
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (array[WatchHistoryEntry])
+
+## Add Watch History Entry [POST /watch-history]
+
+Adds a new entry to the authenticated user's watch history.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (WatchHistoryCreate)
+
++ Response 201 (application/json)
+    + Attributes (WatchHistoryEntry)
+
+## Update Watch History Entry [PATCH /watch-history/{id}]
+
+Updates an existing watch history entry (rating, completed, watchedAt).
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (WatchHistoryUpdate)
+
++ Response 200 (application/json)
+    + Attributes (WatchHistoryEntry)
+
+## Delete Watch History Entry [DELETE /watch-history/{id}]
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+---
+
+# Lists [/lists]
+
+User-created lists (favorites, watchlist, custom lists).
+Lists contain items referencing TMDB movies.
+
+## List My Lists [GET /lists/me]
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (array[UserList])
+
+## Create List [POST /lists]
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (UserListCreate)
+
++ Response 201 (application/json)
+    + Attributes (UserList)
+
+## Get List [GET /lists/{id}]
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (UserList)
+
+## Update List [PATCH /lists/{id}]
+
+Updates list metadata (name, slug).
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (UserListUpdate)
+
++ Response 200 (application/json)
+    + Attributes (UserList)
+
+## Delete List [DELETE /lists/{id}]
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+## Add Item To List [POST /lists/{id}/items]
+
+Adds a movie to a list.
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (ListItemCreate)
+
++ Response 201 (application/json)
+    + Attributes (UserList)
+
+## Remove Item From List [DELETE /lists/{id}/items/{movieId}]
+
+Removes a movie from a list.
+
++ Parameters
+    + id: `663b2f1e9c1d2a001e8e4f1a` (string)
+    + movieId: `tmdb:550` (string) - Normalized movie id
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (UserList)
+
+---
+
+# Groups [/groups]
+
+Groups enable collaborative recommendations.
+
+## List My Groups [GET /groups/me]
+
+Returns groups where the authenticated user is a member.
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (array[Group])
+
+## Create Group [POST /groups]
+
+Creates a group. The authenticated user becomes a member (and typically host).
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (GroupCreate)
+
++ Response 201 (application/json)
+    + Attributes (Group)
+
+## Get Group [GET /groups/{groupId}]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (Group)
+
+## Update Group [PATCH /groups/{groupId}]
+
+Updates group name and/or status.
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (GroupUpdate)
+
++ Response 200 (application/json)
+    + Attributes (Group)
+
+## Delete Group [DELETE /groups/{groupId}]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+## Join Group With Code [POST /groups/join]
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (GroupJoinRequest)
+
++ Response 200 (application/json)
+    + Attributes (Group)
+
+## Leave Group [POST /groups/{groupId}/leave]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 204
+
+## Regenerate Join Code [POST /groups/{groupId}/join-code]
+
+Creates/rotates the group join code and sets an expiration timestamp (TTL).
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (GroupJoinCodeResponse)
+
+---
+
+# Group Sessions [/groups/{groupId}/sessions]
+
+A group session represents a "movie night" workflow.
+Sessions can have:
+- `context` (mood, maxDuration, preferred/excluded genres)
+- soft-start timeouts
+- started status
+Recommendations can be gated by questionnaire readiness.
+
+## List Group Sessions [GET /groups/{groupId}/sessions]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (array[GroupSession])
+
+## Create Group Session [POST /groups/{groupId}/sessions]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (GroupSessionCreate)
+
++ Response 201 (application/json)
+    + Attributes (GroupSession)
+
+## Get Group Session [GET /groups/{groupId}/sessions/{sessionId}]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+    + sessionId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (GroupSession)
+
+## Update Group Session [PATCH /groups/{groupId}/sessions/{sessionId}]
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+    + sessionId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (GroupSessionUpdate)
+
++ Response 200 (application/json)
+    + Attributes (GroupSession)
+
+## Start Group Session [POST /groups/{groupId}/sessions/{sessionId}/start]
+
+Marks the session as started.
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+    + sessionId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (GroupSession)
+
+## Get Group Soft-Start Status [GET /groups/{groupId}/softstart-status]
+
+Returns current soft-start status for a group (used by UI to show countdown/readiness).
+
++ Parameters
+    + groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
+
++ Request
+    + Headers
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (GroupSoftStartStatus)
+
+---
+
+# PCS Recommendations [/pcs]
+
+Process Centric Services (PCS) orchestrate multiple internal/external services
+to generate a final recommendation result.
+
+## Recommend For User [POST /pcs/recommend/user]
+
+Returns a personalized recommendation for the authenticated user.
+Uses preferences, watch history signals, and TMDB candidate pools.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (PCSUserRecommendRequest)
+
++ Response 200 (application/json)
+    + Attributes (UserRecommendationResult)
+
+## Recommend For Group [POST /pcs/recommend/group]
+
+Returns group recommendations. The requester must be a group member.
+If `sessionId` is provided, the engine checks readiness gates.
+
++ Request (application/json)
+    + Headers
+            Authorization: Bearer <token>
+    + Attributes (PCSGroupRecommendRequest)
+
++ Response 200 (application/json)
+    + Attributes (GroupRecommendationResult)
+
+---
+
+# Movies [/movies]
+
+Movie endpoints are backed by a TMDB adapter. Responses are normalized for the UI.
+
+## Search Movies [GET /movies/search?query={query}&page={page}]
+
++ Parameters
+    + query: `interstellar` (string)
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Trending Movies [GET /movies/trending?page={page}]
+
++ Parameters
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Popular Movies [GET /movies/popular?page={page}]
+
++ Parameters
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Now Playing Movies [GET /movies/now-playing?page={page}]
+
++ Parameters
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Top Rated Movies [GET /movies/top-rated?page={page}]
+
++ Parameters
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Movie Details [GET /movies/{id}]
+
++ Parameters
+    + id: 550 (number) - TMDB movie id
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieDetails)
+
+## Get Similar Movies [GET /movies/{id}/similar?page={page}]
+
++ Parameters
+    + id: 550 (number)
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Recommended Movies [GET /movies/{id}/recommended?page={page}]
+
++ Parameters
+    + id: 550 (number)
+    + page: 1 (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (TMDBMovieListResponse)
+
+## Get Movie Watch Providers [GET /movies/{id}/providers]
+
+Returns availability/providers info (streaming/rent/buy) by region.
+
++ Parameters
+    + id: 550 (number)
+
++ Response 200 (application/json)
+    + Attributes (TMDBWatchProvidersResponse)
+
+## List Genres [GET /movies/genres]
+
++ Response 200 (application/json)
+    + Attributes (TMDBGenreListResponse)
+
+---
+
+
+
+# Data Structures
+
+## HealthStatus (object)
++ status: `ok` (string)
++ service: `watchwise-backend` (string)
+
+## User (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ email: `john@example.com` (string)
++ username: `johnny` (string)
++ avatar: `avatar_01` (string)
++ authProvider: `google` (string) - `google` | `github`
++ createdAt: `2024-01-01T12:00:00Z` (string)
++ updatedAt: `2024-01-01T12:00:00Z` (string)
+
+## UserUpdate (object)
++ username: `johnny` (string, optional)
++ avatar: `avatar_01` (string, optional)
+
+## PreferenceEvent (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ userId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ type: `genre` (string) - `genre` | `actor` | `director` | `mood` | `energy` | `company` | `duration` | `novelty`
++ value: `Action` (string) - Value label (e.g., "Action", "Christopher Nolan")
++ weight: 0.8 (number) - Strength in [0..1] or similar scale
++ source: `explicit` (string) - `explicit` | `questionnaire`
++ createdAt: `2024-01-01T12:00:00Z` (string)
+
+## PreferenceEventCreate (object)
++ type: `genre` (string)
++ value: `Action` (string)
++ weight: 0.8 (number, optional)
++ source: `explicit` (string, optional)
+
+## PreferenceEventBulkCreate (object)
++ events: (array[PreferenceEventCreate])
+
+## GroupQuestionnaireStatus (object)
++ groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ members: (array[GroupMemberQuestionnaireStatus])
+
+## GroupMemberQuestionnaireStatus (object)
++ userId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ completed: true (boolean)
++ lastEventAt: `2024-01-01T12:00:00Z` (string, optional)
+
+## WatchHistoryEntry (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ userId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ movieId: `tmdb:550` (string)
++ watchedAt: `2024-01-01T12:00:00Z` (string)
++ rating: 8 (number, optional)
++ completed: true (boolean)
+
+## WatchHistoryCreate (object)
++ movieId: `tmdb:550` (string)
++ watchedAt: `2024-01-01T12:00:00Z` (string, optional)
++ rating: 8 (number, optional)
++ completed: true (boolean, optional)
+
+## WatchHistoryUpdate (object)
++ watchedAt: `2024-01-01T12:00:00Z` (string, optional)
++ rating: 8 (number, optional)
++ completed: true (boolean, optional)
+
+## UserList (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ userId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ name: `Favorites` (string)
++ slug: `favorites` (string)
++ isDefault: false (boolean)
++ items: (array[ListItem], optional)
++ createdAt: `2024-01-01T12:00:00Z` (string)
++ updatedAt: `2024-01-01T12:00:00Z` (string)
+
+## UserListCreate (object)
++ name: `Favorites` (string)
++ slug: `favorites` (string, optional)
+
+## UserListUpdate (object)
++ name: `Favorites` (string, optional)
++ slug: `favorites` (string, optional)
+
+## ListItem (object)
++ movieId: `tmdb:550` (string)
++ addedAt: `2024-01-01T12:00:00Z` (string)
+
+## ListItemCreate (object)
++ movieId: `tmdb:550` (string)
+
+## Group (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ name: `Movie Night` (string)
++ members: (array[string]) - User IDs
++ hostId: `663b2f1e9c1d2a001e8e4f1a` (string, optional)
++ joinCode: `JOIN123` (string, optional)
++ joinCodeExpiresAt: `2024-01-01T13:00:00Z` (string, optional)
++ status: `open` (string, optional)
++ createdAt: `2024-01-01T12:00:00Z` (string)
++ updatedAt: `2024-01-01T12:00:00Z` (string, optional)
+
+## GroupCreate (object)
++ name: `Movie Night` (string)
+
+## GroupUpdate (object)
++ name: `Movie Night` (string, optional)
++ status: `open` (string, optional) - `open` | `locked` | other states if used by the UI
+
+## GroupJoinRequest (object)
++ code: `JOIN123` (string)
+
+## GroupJoinCodeResponse (object)
++ joinCode: `JOIN123` (string)
++ joinCodeExpiresAt: `2024-01-01T13:00:00Z` (string)
+
+## GroupSession (object)
++ id: `663b2f1e9c1d2a001e8e4f1a` (string)
++ groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ context: (RecommendationContext)
++ selectedMovieId: `tmdb:550` (string, optional)
++ softStartAt: `2024-01-01T12:30:00Z` (string, optional)
++ softStartTimeoutMinutes: 15 (number, optional)
++ startedAt: `2024-01-01T12:45:00Z` (string, optional)
++ status: `pending` (string, optional)
++ createdAt: `2024-01-01T12:00:00Z` (string)
++ updatedAt: `2024-01-01T12:10:00Z` (string, optional)
+
+## GroupSessionCreate (object)
++ context: (RecommendationContext, optional)
+
+## GroupSessionUpdate (object)
++ context: (RecommendationContext, optional)
++ selectedMovieId: `tmdb:550` (string, optional)
++ softStartAt: `2024-01-01T12:30:00Z` (string, optional)
++ softStartTimeoutMinutes: 15 (number, optional)
++ status: `started` (string, optional)
+
+## GroupSoftStartStatus (object)
++ groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ active: true (boolean)
++ softStartAt: `2024-01-01T12:30:00Z` (string, optional)
++ remainingSeconds: 420 (number, optional)
+
+## RecommendationContext (object)
++ mood: `happy` (string, optional)
++ preferredGenres: (array[string], optional)
++ excludedGenres: (array[string], optional)
++ maxDuration: 120 (number, optional)
+
+## PCSUserRecommendRequest (object)
++ context: (RecommendationContext, optional)
++ limit: 20 (number, optional)
++ offset: 0 (number, optional)
+
+## PCSGroupRecommendRequest (object)
++ groupId: `663b2f1e9c1d2a001e8e4f1a` (string)
++ sessionId: `663b2f1e9c1d2a001e8e4f1a` (string, optional)
++ context: (RecommendationContext, optional)
++ limit: 20 (number, optional)
++ offset: 0 (number, optional)
+
+## UserRecommendationResult (object)
++ recommended: (ScoredMovie)
++ topK: (array[ScoredMovie])
+
+## GroupRecommendationResult (object)
++ buckets: (GroupBuckets)
++ outsiders: (array[GroupScoredMovie], optional)
+
+## GroupBuckets (object)
++ high: (array[GroupScoredMovie])
++ medium: (array[GroupScoredMovie])
++ explore: (array[GroupScoredMovie])
+
+## ScoredMovie (object)
++ movie: (MovieCandidate)
++ score: 0.87 (number)
++ reasons: (array[string])
++ serendipity: false (boolean, optional)
+
+## GroupScoredMovie (object)
++ movie: (MovieCandidate)
++ score: 0.87 (number)
++ reasons: (array[string])
++ compatibility: 0.73 (number)
++ outsider: false (boolean)
+
+## MovieCandidate (object)
++ movieId: `tmdb:550` (string)
++ title: `Fight Club` (string)
++ posterPath: `/a26cQPRhJPX6GbWfQbvZdrrp9j9.jpg` (string, optional)
++ releaseDate: `1999-10-15` (string, optional)
++ popularity: 60.0 (number, optional)
++ rating: 8.4 (number, optional)
+
+## TMDBMovie (object)
++ id: 550 (number)
++ title: `Fight Club` (string)
++ release_date: `1999-10-15` (string, optional)
++ popularity: 60.0 (number)
++ vote_average: 8.4 (number)
++ vote_count: 25000 (number)
++ poster_path: `/a26cQPRhJPX6GbWfQbvZdrrp9j9.jpg` (string, optional)
+
+## TMDBMovieListResponse (object)
++ page: 1 (number)
++ results: (array[TMDBMovie])
+
+## TMDBMovieDetails (object)
++ id: 550 (number)
++ title: `Fight Club` (string)
++ poster_path: `/a26cQPRhJPX6GbWfQbvZdrrp9j9.jpg` (string, optional)
++ vote_average: 8.4 (number, optional)
++ original_language: `en` (string, optional)
++ overview: `A ticking-time-bomb insomniac...` (string, optional)
++ runtime: 139 (number, optional)
++ release_date: `1999-10-15` (string, optional)
+
+## TMDBGenre (object)
++ id: 28 (number)
++ name: `Action` (string)
+
+## TMDBGenreListResponse (object)
++ genres: (array[TMDBGenre])
+
+## TMDBWatchProvidersResponse (object)
++ id: 550 (number)
++ results: (object) - Region map, TMDB-style payload
