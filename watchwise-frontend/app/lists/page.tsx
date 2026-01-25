@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -55,9 +55,10 @@ async function mapWithConcurrency<T, R>(
   return results
 }
 
-export default function ListsPage() {
+function ListsPageInner() {
   const searchParams = useSearchParams()
   const listParam = searchParams.get("listId")
+
   const [lists, setLists] = useState<UserList[]>([])
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [items, setItems] = useState<UserListItem[]>([])
@@ -82,9 +83,8 @@ export default function ListsPage() {
         if (!active) return
         setLists(data)
         if (!selectedListId && data.length) {
-          const initial = listParam && data.some((list) => list.id === listParam)
-            ? listParam
-            : data[0].id
+          const initial =
+            listParam && data.some((list) => list.id === listParam) ? listParam : data[0].id
           setSelectedListId(initial)
         }
       } catch {
@@ -218,9 +218,7 @@ export default function ListsPage() {
                 try {
                   await deleteList(activeList.id)
                   setLists((prev) => prev.filter((entry) => entry.id !== activeList.id))
-                  if (selectedListId === activeList.id) {
-                    setSelectedListId(null)
-                  }
+                  if (selectedListId === activeList.id) setSelectedListId(null)
                 } finally {
                   setDeletingListId(null)
                 }
@@ -309,5 +307,13 @@ export default function ListsPage() {
       </div>
       <BottomNav />
     </main>
+  )
+}
+
+export default function ListsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen pb-28 bg-zinc-950" />}>
+      <ListsPageInner />
+    </Suspense>
   )
 }

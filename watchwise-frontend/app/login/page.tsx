@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { Suspense } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Chrome, Github, ArrowLeft, ShieldCheck } from "lucide-react"
@@ -33,9 +33,18 @@ const LogoDisconnectedSpark = ({ className }: { className?: string }) => (
       </filter>
     </defs>
     <g filter="url(#login-neon)">
-      <path d="M10 15 L35 65 L60 25 L85 65" stroke="url(#login-grad-main)" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M10 15 L35 65 L60 25 L85 65"
+        stroke="url(#login-grad-main)"
+        strokeWidth="18"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <g transform="translate(95, 20) scale(1.8) rotate(10)">
-         <path d="M10 0 C10 0 12 6 18 10 C 12 14 10 20 10 20 C 10 20 8 14 2 10 C 8 6 10 0 10 0 Z" fill="url(#login-grad-spark)" />
+        <path
+          d="M10 0 C10 0 12 6 18 10 C 12 14 10 20 10 20 C 10 20 8 14 2 10 C 8 6 10 0 10 0 Z"
+          fill="url(#login-grad-spark)"
+        />
       </g>
     </g>
   </svg>
@@ -53,36 +62,38 @@ const providers: Array<{
     label: "Google",
     description: "Continua con il tuo account Google",
     icon: Chrome,
-    colorClass: "hover:border-red-500/50 hover:bg-red-500/10 hover:shadow-[0_0_30px_-10px_rgba(239,68,68,0.3)]",
+    colorClass:
+      "hover:border-red-500/50 hover:bg-red-500/10 hover:shadow-[0_0_30px_-10px_rgba(239,68,68,0.3)]",
   },
   {
     id: "github",
     label: "GitHub",
     description: "Continua con il tuo account GitHub",
     icon: Github,
-    colorClass: "hover:border-purple-500/50 hover:bg-purple-500/10 hover:shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]",
+    colorClass:
+      "hover:border-purple-500/50 hover:bg-purple-500/10 hover:shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]",
   },
 ]
 
-export default function LoginPage() {
+function LoginPageInner() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirectTo") ?? "/profile"
 
   return (
     <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-zinc-950 text-foreground selection:bg-mint/30">
-      
       {/* --- BACKGROUND AMBIENCE --- */}
-      {/* Noise Texture */}
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
-      
-      {/* Gradient Orbs */}
+
       <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/20 blur-[120px] rounded-full opacity-40 animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-teal-500/10 blur-[120px] rounded-full opacity-30" />
       <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/10 blur-[100px] rounded-full opacity-20" />
 
       {/* --- BACK LINK --- */}
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors backdrop-blur-sm">
+        <Link
+          href="/"
+          className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors backdrop-blur-sm"
+        >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Torna alla Home
         </Link>
@@ -96,18 +107,13 @@ export default function LoginPage() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="relative group"
         >
-          {/* Glow Effect behind card */}
           <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-b from-white/20 to-transparent opacity-20 blur-md transition duration-500 group-hover:opacity-40" />
-          
+
           <div className="relative rounded-[2rem] border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
-            
-            {/* Top Shine */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
             <div className="p-8 md:p-10 flex flex-col items-center">
-              
-              {/* Logo Animation */}
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, type: "spring" }}
@@ -118,20 +124,24 @@ export default function LoginPage() {
 
               <div className="text-center space-y-2 mb-8">
                 <h1 className="text-2xl font-bold tracking-tight">
-                  Bentornato su <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-teal-300 to-amber-400">WatchWise</span>
+                  Bentornato su{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-teal-300 to-amber-400">
+                    WatchWise
+                  </span>
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   Sincronizza i tuoi gusti, trova cosa guardare.
                 </p>
               </div>
 
-              {/* Security Badge */}
               <div className="w-full mb-6 p-3 rounded-xl bg-violet-500/5 border border-violet-500/10 flex items-start gap-3 text-xs text-muted-foreground">
                 <ShieldCheck className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" />
-                <p>Usa il tuo account esistente per accedere. Non condivideremo mai i tuoi dati senza permesso.</p>
+                <p>
+                  Usa il tuo account esistente per accedere. Non condivideremo mai i tuoi dati senza
+                  permesso.
+                </p>
               </div>
 
-              {/* Providers Grid */}
               <div className="w-full space-y-3">
                 {providers.map((provider) => {
                   const Icon = provider.icon
@@ -143,7 +153,7 @@ export default function LoginPage() {
                         "relative w-full h-auto p-4 flex items-center justify-start gap-4",
                         "bg-white/[0.03] border-white/10 rounded-xl",
                         "text-left transition-all duration-300",
-                        "hover:text-foreground", // ensure text stays visible
+                        "hover:text-foreground",
                         provider.colorClass
                       )}
                       onClick={() =>
@@ -157,10 +167,11 @@ export default function LoginPage() {
                       </div>
                       <div className="flex flex-col">
                         <span className="font-semibold text-sm">{provider.label}</span>
-                        <span className="text-xs text-muted-foreground/80 font-normal">{provider.description}</span>
+                        <span className="text-xs text-muted-foreground/80 font-normal">
+                          {provider.description}
+                        </span>
                       </div>
-                      
-                      {/* Subtle Arrow */}
+
                       <div className="ml-auto opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
                         <ArrowLeft className="w-4 h-4 rotate-180" />
                       </div>
@@ -169,23 +180,31 @@ export default function LoginPage() {
                 })}
               </div>
 
-              {/* Footer Links */}
               <div className="mt-8 text-center text-xs text-muted-foreground">
                 Non hai ancora un account?{" "}
-                <Link href="/register" className="text-teal-400 hover:text-teal-300 font-medium underline-offset-4 hover:underline transition-colors">
+                <Link
+                  href="/register"
+                  className="text-teal-400 hover:text-teal-300 font-medium underline-offset-4 hover:underline transition-colors"
+                >
                   Registrati gratis
                 </Link>
               </div>
-
             </div>
           </div>
         </motion.div>
       </div>
-      
-      {/* Footer Legal (Optional aesthetic touch) */}
+
       <div className="absolute bottom-6 text-center w-full text-[10px] text-zinc-700 pointer-events-none">
         &copy; 2024 WatchWise Inc. All rights reserved.
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950" />}>
+      <LoginPageInner />
+    </Suspense>
   )
 }

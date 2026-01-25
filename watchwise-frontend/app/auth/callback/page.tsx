@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CheckCircle2, AlertCircle, UserX, Loader2, ArrowRight } from "lucide-react"
 import { Header } from "@/components/header"
@@ -16,12 +16,16 @@ async function retryOAuthWithUsername(username: string, params: URLSearchParams)
   const provider = params.get("provider") || "google"
   const code = params.get("code")
   const state = params.get("state")
-  
+
   if (!code || !state) throw new Error("Missing OAuth params")
-  
+
   const baseUrl = process.env.NEXT_PUBLIC_AUTH_BASE_URL || ""
-  const url = `${baseUrl}/oauth/${provider}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&username=${encodeURIComponent(username)}`
-  
+  const url =
+    `${baseUrl}/oauth/${provider}/callback` +
+    `?code=${encodeURIComponent(code)}` +
+    `&state=${encodeURIComponent(state)}` +
+    `&username=${encodeURIComponent(username)}`
+
   const res = await fetch(url, { credentials: "include" })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -30,24 +34,29 @@ async function retryOAuthWithUsername(username: string, params: URLSearchParams)
   return res
 }
 
-export default function AuthCallbackPage() {
+function AuthCallbackPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
+
   const [status, setStatus] = useState<"idle" | "success" | "error" | "username-taken">("idle")
   const [details, setDetails] = useState<string | null>(null)
   const [redirectTo, setRedirectTo] = useState<string>("")
+
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([])
   const [lastTriedUsername, setLastTriedUsername] = useState<string>("")
   const [retryError, setRetryError] = useState<string | null>(null)
   const [retryLoading, setRetryLoading] = useState(false)
 
+  // Load redirect target from intent
   useEffect(() => {
     const intent = readAuthIntent()
     setRedirectTo(intent?.redirectTo ?? "/profile")
   }, [])
 
+  // Handle callback params
   useEffect(() => {
     if (!redirectTo) return
+
     const error = searchParams.get("error")
     const statusParam = searchParams.get("status")
     const token = searchParams.get("token")
@@ -60,7 +69,7 @@ export default function AuthCallbackPage() {
         const parsed = JSON.parse(searchParams.get("error_body") || "{}")
         if (Array.isArray(parsed.suggestions)) suggestions = parsed.suggestions
       } catch {}
-      
+
       setStatus("username-taken")
       setDetails("The username is already taken. Please choose another one.")
       setUsernameSuggestions(suggestions)
@@ -80,8 +89,10 @@ export default function AuthCallbackPage() {
       return
     }
 
+    // Success path
     if (token || userParam) {
       let parsedUser: unknown | undefined
+
       if (userParam) {
         try {
           parsedUser = JSON.parse(decodeURIComponent(userParam))
@@ -92,15 +103,18 @@ export default function AuthCallbackPage() {
 
       storeSession({ token: token ?? undefined, user: parsedUser })
       clearAuthIntent()
+
       setStatus("success")
       setDetails("Successfully authenticated. Redirecting you shortly...")
-      
+
       const timeout = setTimeout(() => {
         router.replace(redirectTo)
       }, 1500)
+
       return () => clearTimeout(timeout)
     }
 
+    // Fallback error
     setStatus("error")
     setDetails("Invalid response from provider. Please try again.")
   }, [redirectTo, router, searchParams])
@@ -109,19 +123,24 @@ export default function AuthCallbackPage() {
   async function handleUsernameRetry(newUsername: string) {
     setRetryLoading(true)
     setRetryError(null)
+
     try {
       const params = new URLSearchParams(window.location.search)
       params.set("username", newUsername)
+
       await retryOAuthWithUsername(newUsername, params)
+
       // Force reload to trigger normal flow
       window.location.search = params.toString()
     } catch (err: any) {
       let msg = "Generic error. Please try again."
       let suggestions: string[] = []
+
       if (err && typeof err === "object") {
         if (err.message) msg = err.message
         if (Array.isArray(err.suggestions)) suggestions = err.suggestions
       }
+
       setRetryError(msg)
       setUsernameSuggestions(suggestions)
     } finally {
@@ -140,18 +159,18 @@ export default function AuthCallbackPage() {
 
       <section className="relative z-10 flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-          
           {/* Status Indicator Bar */}
-          <div className={cn(
-            "h-1.5 w-full",
-            status === "idle" && "bg-zinc-800",
-            status === "success" && "bg-emerald-500",
-            status === "error" && "bg-red-500",
-            status === "username-taken" && "bg-amber-500",
-          )} />
+          <div
+            className={cn(
+              "h-1.5 w-full",
+              status === "idle" && "bg-zinc-800",
+              status === "success" && "bg-emerald-500",
+              status === "error" && "bg-red-500",
+              status === "username-taken" && "bg-amber-500"
+            )}
+          />
 
           <CardContent className="p-8 flex flex-col items-center text-center space-y-6">
-            
             {/* --- IDLE / LOADING STATE --- */}
             {status === "idle" && (
               <>
@@ -179,9 +198,12 @@ export default function AuthCallbackPage() {
                   <p className="text-zinc-400 text-sm">{details}</p>
                 </div>
                 <div className="w-full pt-4">
-                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 animate-[progress_1.5s_ease-in-out]" style={{width: '100%'}} />
-                   </div>
+                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 animate-[progress_1.5s_ease-in-out]"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -194,9 +216,7 @@ export default function AuthCallbackPage() {
                     <UserX className="h-8 w-8 text-amber-400" />
                   </div>
                   <h2 className="text-xl font-bold text-white">Username Taken</h2>
-                  <p className="text-zinc-400 text-sm mt-2 max-w-xs">
-                    {details}
-                  </p>
+                  <p className="text-zinc-400 text-sm mt-2 max-w-xs">{details}</p>
                 </div>
 
                 <div className="text-left w-full bg-black/20 rounded-xl p-4 border border-white/5">
@@ -223,7 +243,7 @@ export default function AuthCallbackPage() {
                     {details}
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col w-full gap-3 pt-4">
                   <Button asChild className="w-full bg-white text-black hover:bg-zinc-200">
                     <Link href="/login">Back to Login</Link>
@@ -237,16 +257,27 @@ export default function AuthCallbackPage() {
 
             {/* Manual Redirect Button (Success Fallback) */}
             {status === "success" && redirectTo && (
-              <Button asChild variant="ghost" className="text-zinc-500 hover:text-emerald-400 text-xs mt-4 animate-pulse">
+              <Button
+                asChild
+                variant="ghost"
+                className="text-zinc-500 hover:text-emerald-400 text-xs mt-4 animate-pulse"
+              >
                 <Link href={redirectTo} className="flex items-center gap-1">
                   Click here if not redirected <ArrowRight className="h-3 w-3" />
                 </Link>
               </Button>
             )}
-
           </CardContent>
         </Card>
       </section>
     </main>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950" />}>
+      <AuthCallbackPageInner />
+    </Suspense>
   )
 }
