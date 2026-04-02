@@ -1,81 +1,79 @@
-import { Collection, ObjectId } from "mongodb";
-import { getDb } from "../../config/mongodb";
-import { User , UpdateUserInput} from "./types";
+// watchwise-backend/src/data/users/repository.ts
+import { eq, like } from "drizzle-orm";
+import { getDb } from "../../db";
+import { users } from "../../db/schema";
+import { CreateUserInput, UpdateUserInput, User } from "./types";
 
-function collection(): Collection<User> {
-  return getDb().collection<User>("users");
+function toUser(row: typeof users.$inferSelect): User {
+  return {
+    id: row.id,
+    username: row.username,
+    avatar: row.avatar,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  return collection().findOne({ _id: new ObjectId(id) });
+  const db = getDb();
+  const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return rows[0] ? toUser(rows[0]) : null;
 }
 
-export async function getUserByEmail(email: string): Promise<User | null> {
-  return collection().findOne({ email });
+export async function getUserByUsername(username: string): Promise<User | null> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return rows[0] ? toUser(rows[0]) : null;
 }
 
-export async function getUserByOAuth(
-  oauthProvider: string,
-  oauthId: string
-): Promise<User | null> {
-  return collection().findOne({ oauthProvider, oauthId });
+export async function getUsersByUsernamePrefix(prefix: string): Promise<User[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(users)
+    .where(like(users.username, `${prefix}%`))
+    .limit(20);
+  return rows.map(toUser);
 }
 
-export async function createUser(
-  data: Omit<User, "_id">
-): Promise<User> {
+export async function createUser(data: CreateUserInput): Promise<User> {
+  const db = getDb();
+  const now = new Date();
   try {
-    const result = await collection().insertOne(data as User);
-    return { _id: result.insertedId, ...data };
+    const rows = await db
+      .insert(users)
+      .values({
+        id: data.id,
+        username: data.username,
+        avatar: data.avatar,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return toUser(rows[0]);
   } catch (err: any) {
-    if (err.code === 11000 && err.keyPattern?.username) {
+    // PostgreSQL unique violation code
+    if (err.code === "23505" && err.constraint_name?.includes("username")) {
       throw new Error("USERNAME_ALREADY_EXISTS");
     }
     throw err;
   }
 }
-export async function updateUser(
-  userId: string,
-  data: UpdateUserInput
-) {
-  await collection().updateOne(
-    { _id: new ObjectId(userId) },
-    {
-      $set: {
-        ...data,
-        updatedAt: new Date()
-      }
-    }
-  );
-}
 
-export async function linkOAuthToUser(
-  userId: string,
-  oauthProvider: string,
-  oauthId: string
-) {
-  await collection().updateOne(
-    { _id: new ObjectId(userId) },
-    {
-      $set: {
-        authProvider: "oauth",
-        oauthProvider,
-        oauthId,
-        updatedAt: new Date()
-      }
-    }
-  );
-}
-
-export async function deleteUserAndData(userId: string) {
+export async function updateUser(userId: string, data: UpdateUserInput): Promise<void> {
   const db = getDb();
-  const _id = new ObjectId(userId);
+  await db
+    .update(users)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
 
-  await Promise.all([
-    db.collection("users").deleteOne({ _id }),
-    db.collection("user_preference_events").deleteMany({ userId: _id }),
-    db.collection("user_watch_history").deleteMany({ userId: _id }),
-    // FUTURO:
-    // db.collection("group_members").deleteMany({ userId: _id })
-  ]);
+export async function deleteUserAndData(userId: string): Promise<void> {
+  const db = getDb();
+  // Le FK con ON DELETE CASCADE gestiscono automaticamente i record correlati
+  await db.delete(users).where(eq(users.id, userId));
 }

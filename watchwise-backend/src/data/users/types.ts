@@ -1,24 +1,12 @@
-import { ObjectId } from "mongodb";
-
-export type AuthProvider = "local" | "oauth";
+// watchwise-backend/src/data/users/types.ts
 
 export interface User {
-  _id: ObjectId;
-
-  email: string;
+  id: string;           // UUID da Supabase Auth
   username: string;
-
-  avatar: string; // es. "avatar_01"
-
-  authProvider: AuthProvider;
-  passwordHash?: string;
-
-  oauthProvider?: string;
-  oauthId?: string;
-
+  avatar: string;
   createdAt: Date;
   updatedAt: Date;
 }
-export type UpdateUserInput = Partial<
-  Pick<User, "username" | "avatar">
->;
+
+export type UpdateUserInput = Partial<Pick<User, "username" | "avatar">>;
+export type CreateUserInput = Pick<User, "id" | "username" | "avatar">;
