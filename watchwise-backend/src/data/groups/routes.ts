@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { ObjectId } from "mongodb";
 import { requireAuth } from "../../middleware/auth";
 import { AppError } from "../../common/errors";
 import {
@@ -17,21 +16,26 @@ import {
 const JOIN_CODE_LENGTH = 8;
 const JOIN_CODE_TTL_MINUTES = 60;
 
+function serializeGroup(group: Awaited<ReturnType<typeof findGroupById>>) {
+  if (!group) return null;
+  return {
+    id: group.id,
+    name: group.name,
+    members: group.members,
+    hostId: group.hostId,
+    joinCode: group.joinCode,
+    joinCodeExpiresAt: group.joinCodeExpiresAt,
+    status: group.status
+  };
+}
+
 export async function groupRoutes(app: FastifyInstance) {
   app.get(
     "/api/groups",
     { preHandler: [requireAuth] },
     async (req) => {
-      const groups = await findGroupsByMember(new ObjectId(req.userId!));
-      return groups.map((group) => ({
-        id: group._id.toString(),
-        name: group.name,
-        members: group.members.map((m) => m.toString()),
-        hostId: group.hostId?.toString(),
-        joinCode: group.joinCode,
-        joinCodeExpiresAt: group.joinCodeExpiresAt,
-        status: group.status
-      }));
+      const groups = await findGroupsByMember(req.userId!);
+      return groups.map(serializeGroup);
     }
   );
 
@@ -49,31 +53,23 @@ export async function groupRoutes(app: FastifyInstance) {
         throw new AppError("INVALID_INPUT", 400, "Missing group name");
       }
 
-      const hostId = new ObjectId(req.userId!);
-      const members = Array.from(
-        new Set([hostId.toString(), ...memberIds])
-      ).map((id) => new ObjectId(id));
-
       const { code, expiresAt } = generateJoinCode();
 
       const group = await createGroup({
         name,
-        members,
-        hostId,
+        hostId: req.userId!,
         joinCode: code,
         joinCodeExpiresAt: expiresAt,
         status: "open"
       });
 
-      return {
-        id: group._id.toString(),
-        name: group.name,
-        members: group.members.map((m) => m.toString()),
-        hostId: group.hostId?.toString(),
-        joinCode: group.joinCode,
-        joinCodeExpiresAt: group.joinCodeExpiresAt,
-        status: group.status
-      };
+      const allMemberIds = Array.from(new Set([req.userId!, ...memberIds]));
+      for (const memberId of allMemberIds) {
+        await addGroupMember(group.id, memberId);
+      }
+
+      const fullGroup = await findGroupById(group.id);
+      return serializeGroup(fullGroup);
     }
   );
 
@@ -82,31 +78,17 @@ export async function groupRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
-      return {
-        id: group._id.toString(),
-        name: group.name,
-        members: group.members.map((m) => m.toString()),
-        hostId: group.hostId?.toString(),
-        joinCode: group.joinCode,
-        joinCodeExpiresAt: group.joinCodeExpiresAt,
-        status: group.status
-      };
+      return serializeGroup(group);
     }
   );
 
@@ -134,11 +116,11 @@ export async function groupRoutes(app: FastifyInstance) {
         throw new AppError("UNAUTHORIZED", 403, "Join code expired");
       }
 
-      await addGroupMember(group._id, new ObjectId(req.userId!));
+      await addGroupMember(group.id, req.userId!);
 
       return {
         ok: true,
-        groupId: group._id.toString()
+        groupId: group.id
       };
     }
   );
@@ -148,34 +130,22 @@ export async function groupRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const groupObjectId = new ObjectId(groupId);
-      const userObjectId = new ObjectId(req.userId!);
-
-      const group = await findGroupById(groupObjectId);
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some((memberId) =>
-        memberId.equals(userObjectId)
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
-      const remainingMembers = group.members.filter(
-        (memberId) => !memberId.equals(userObjectId)
-      );
+      const remainingMembers = group.members.filter((id) => id !== req.userId);
 
-      await removeGroupMember(group._id, userObjectId);
+      await removeGroupMember(group.id, req.userId!);
 
-      if (group.hostId?.equals(userObjectId)) {
-        const newHostId = remainingMembers[0];
-        await setGroupHost(group._id, newHostId);
+      if (group.hostId === req.userId) {
+        await setGroupHost(group.id, remainingMembers[0]);
       }
 
       return { ok: true };
@@ -187,21 +157,18 @@ export async function groupRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      if (group.hostId?.toString() !== req.userId) {
+      if (group.hostId !== req.userId) {
         throw new AppError("UNAUTHORIZED", 403, "Only host can regenerate code");
       }
 
       const { code, expiresAt } = generateJoinCode();
-      await updateGroupJoinCode(group._id, code, expiresAt);
+      await updateGroupJoinCode(group.id, code, expiresAt);
 
       return {
         joinCode: code,
@@ -215,20 +182,17 @@ export async function groupRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      if (group.hostId?.toString() !== req.userId) {
+      if (group.hostId !== req.userId) {
         throw new AppError("UNAUTHORIZED", 403, "Only host can lock group");
       }
 
-      await updateGroupStatus(group._id, "locked");
+      await updateGroupStatus(group.id, "locked");
       return { ok: true };
     }
   );
@@ -238,20 +202,17 @@ export async function groupRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      if (group.hostId?.toString() !== req.userId) {
+      if (group.hostId !== req.userId) {
         throw new AppError("UNAUTHORIZED", 403, "Only host can unlock group");
       }
 
-      await updateGroupStatus(group._id, "open");
+      await updateGroupStatus(group.id, "open");
       return { ok: true };
     }
   );
