@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
@@ -110,6 +111,7 @@ function SkeletonMovieGrid({ count = 6 }: { count?: number }) {
 }
 
 export default function GroupDetailPage() {
+  const checking = useRequireAuth()
   const router = useRouter()
   const params = useParams()
   const groupId = Array.isArray(params?.id) ? params?.id[0] : (params?.id as string)
@@ -350,9 +352,11 @@ export default function GroupDetailPage() {
     : activeBucket === "explore" ? buckets?.explore
     : outsiders
 
+  if (checking) return null
+
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
-      
+
       {/* --- BACKGROUND AMBIENCE --- */}
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MoodQuestionnaire, type UserPreferences } from "@/components/mood-questionnaire"
@@ -9,6 +10,7 @@ import { Sparkles, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function QuestionnairePage() {
+  const checking = useRequireAuth()
   const router = useRouter()
 
   const handleComplete = async (prefs: UserPreferences) => {
@@ -26,6 +28,8 @@ export default function QuestionnairePage() {
   const handleSkip = () => {
     router.push("/")
   }
+
+  if (checking) return null
 
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">

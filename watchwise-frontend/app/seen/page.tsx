@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
@@ -77,6 +78,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 export default function SeenMoviesPage() {
+  const checking = useRequireAuth()
   const [items, setItems] = useState<SeenMovieCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -231,6 +233,8 @@ export default function SeenMoviesPage() {
       </div>
     )
   }, [loading, error, items, removingId])
+
+  if (checking) return null
 
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-emerald-500/30 pb-28">

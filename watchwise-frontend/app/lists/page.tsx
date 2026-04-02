@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
@@ -56,6 +57,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 function ListsPageInner() {
+  const checking = useRequireAuth()
   const searchParams = useSearchParams()
   const listParam = searchParams.get("listId")
 
@@ -162,6 +164,8 @@ function ListsPageInner() {
   )
 
   const activeListIsDeletable = activeList ? !activeList.isDefault : false
+
+  if (checking) return null
 
   return (
     <main className="min-h-screen pb-28 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_50%)]">

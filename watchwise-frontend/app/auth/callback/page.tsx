@@ -30,8 +30,10 @@ function AuthCallbackPageInner() {
   const [redirectTo, setRedirectTo] = useState<string>("/")
 
   useEffect(() => {
-    // Read destination once synchronously — avoids stale-closure in callbacks
-    const dest = getAuthRedirect()
+    // Read destination once synchronously — avoids stale-closure in callbacks.
+    // Fall back to /profile rather than "/" when the key is absent or stale.
+    const rawDest = getAuthRedirect()
+    const dest = rawDest === "/" ? "/profile" : rawDest
     setRedirectTo(dest)
 
     const error = searchParams.get("error")
@@ -58,13 +60,26 @@ function AuthCallbackPageInner() {
         return
       }
 
-      const { access_token } = data.session
+      const { access_token, user: supabaseUser } = data.session
 
       try {
         const user = await upsertUserSession(access_token)
         storeSession({ token: access_token, user })
-      } catch {
-        storeSession({ token: access_token })
+      } catch (err) {
+        console.error("[Auth] Backend session upsert failed:", err)
+        // Fallback: store basic info from the Supabase JWT so the header
+        // can show the user avatar/username even if the backend is unreachable.
+        const fallbackUser = {
+          id: supabaseUser.id,
+          username:
+            supabaseUser.user_metadata?.full_name ??
+            supabaseUser.user_metadata?.name ??
+            supabaseUser.email?.split("@")[0] ??
+            "User",
+          avatar: "",
+          email: supabaseUser.email,
+        }
+        storeSession({ token: access_token, user: fallbackUser })
       }
 
       clearAuthRedirect()

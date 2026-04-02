@@ -63,6 +63,8 @@ export function storeSession(session: { token?: string; user?: unknown }) {
   if (session.user) {
     localStorage.setItem(USER_KEY, JSON.stringify(session.user))
   }
+  // Notify components (e.g. Header) that auth state has changed
+  window.dispatchEvent(new Event("watchwise-auth-changed"))
 }
 
 export function getStoredToken() {

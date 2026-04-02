@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function GroupsPage() {
+  const checking = useRequireAuth()
   const [groups, setGroups] = useState<GroupSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -90,9 +92,11 @@ export default function GroupsPage() {
     }
   }
 
+  if (checking) return null
+
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
-      
+
       {/* --- BACKGROUND AMBIENCE --- */}
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full opacity-40 pointer-events-none z-0" />

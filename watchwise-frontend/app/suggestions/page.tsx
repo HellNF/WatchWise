@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieCard } from "@/components/movie-card"
@@ -133,6 +134,7 @@ function buildQuestionnaireContext() {
 }
 
 export default function SuggestionsPage() {
+  const checking = useRequireAuth()
   const [items, setItems] = useState<SuggestionCard[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -351,6 +353,8 @@ export default function SuggestionsPage() {
       </div>
     )
   }, [loading, error, items])
+
+  if (checking) return null
 
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-amber-500/30 pb-28">

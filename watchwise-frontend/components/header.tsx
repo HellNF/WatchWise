@@ -47,18 +47,27 @@ export function Header() {
 
     loadFromStorage()
 
-    // Re-sync when Supabase session changes (e.g. after OAuth redirect)
+    // Re-sync when storage changes (fired by storeSession via dispatchEvent)
+    const onStorage = () => loadFromStorage()
+    window.addEventListener("watchwise-auth-changed", onStorage)
+
+    // Re-sync when Supabase session changes (e.g. after OAuth redirect).
+    // Use a small delay so that storeSession() has already written
+    // watchwise-user to localStorage before we read it.
     const supabase = getSupabaseClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        loadFromStorage()
+        setTimeout(loadFromStorage, 200)
       } else if (event === "SIGNED_OUT") {
         setIsLoggedIn(false)
         setUser(null)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener("watchwise-auth-changed", onStorage)
+    }
   }, [])
 
   return (

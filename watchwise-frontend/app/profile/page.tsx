@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import Link from "next/link"
@@ -213,6 +214,7 @@ function ListCard({ list }: { list: UserList }) {
 }
 
 export default function ProfilePage() {
+  const checking = useRequireAuth()
   const router = useRouter()
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([])
@@ -486,6 +488,8 @@ export default function ProfilePage() {
     )
   })()
 
+  if (checking) return null
+
   return (
     <main className="min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
       <Header />
@@ -556,7 +560,7 @@ export default function ProfilePage() {
                   {profile?.username ?? "WatchWise User"}
                 </h1>
                 <p className="text-sm text-zinc-500 mb-6">
-                  {profile?.email ?? "Movie enthusiast"}
+                  Movie enthusiast
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
