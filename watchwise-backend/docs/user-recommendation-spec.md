@@ -88,7 +88,7 @@ Coordinates the overall recommendation workflow, orchestrating the above layers.
 For further details, see code comments and each module's documentation.
 ---
 
-## Spiegazione discorsiva dell'algoritmo di raccomandazione (in italiano)
+
 
 ## Discursive explanation of the recommendation algorithm (in English)
 
