@@ -1,26 +1,56 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildCandidatePool = buildCandidatePool;
+exports.buildGroupCandidatePool = buildGroupCandidatePool;
 const tmdb_1 = require("../../adapters/tmdb");
+// Funzione di supporto per arricchire il pool con i suggested dei topK
+async function fetchSuggestedForTopK(topK, region, limitPerType = 10) {
+    const suggested = [];
+    for (const movie of topK) {
+        const tmdbId = parseTmdbId(movie.movieId);
+        if (!tmdbId)
+            continue;
+        try {
+            const [similar, recommended] = await Promise.all([
+                (0, tmdb_1.fetchSimilarMovies)(tmdbId, limitPerType),
+                (0, tmdb_1.fetchRecommendedMovies)(tmdbId, limitPerType)
+            ]);
+            suggested.push(...similar, ...recommended);
+        }
+        catch {
+            continue;
+        }
+    }
+    return suggested;
+}
 const repository_1 = require("../../data/watch-history/repository");
 const repository_2 = require("../../data/lists/repository");
 const repository_3 = require("../../data/preferences/repository");
 const mongodb_1 = require("mongodb");
-async function buildCandidatePool(userId, region, limit, excludeDays = 200, // 200 giorni: evita re-recommend
-preferences) {
-    const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
-        (0, repository_1.getRecentlyWatchedMovies)(new mongodb_1.ObjectId(userId), excludeDays),
-        (0, repository_1.getWatchHistoryEntries)(userId, 20),
-        (0, repository_2.getListItemsBySlug)(userId, "watching-list"),
-        (0, repository_3.getUserPreferenceEvents)(new mongodb_1.ObjectId(userId), 300)
-    ]);
-    const watchedSet = new Set(watched.map(normalizeMovieId));
-    const watchlistSet = new Set(watchlistItems.map((item) => normalizeMovieId(item.movieId)));
+async function buildGroupCandidatePool(memberIds, region, limit, excludeDays = 200, preferences) {
+    const memberData = await Promise.all(memberIds.map(async (memberId) => {
+        const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
+            (0, repository_1.getRecentlyWatchedMovies)(new mongodb_1.ObjectId(memberId), excludeDays),
+            (0, repository_1.getWatchHistoryEntries)(memberId, 20),
+            (0, repository_2.getListItemsBySlug)(memberId, "watching-list"),
+            (0, repository_3.getUserPreferenceEvents)(new mongodb_1.ObjectId(memberId), 300)
+        ]);
+        return { watched, history, watchlistItems, feedbackEvents };
+    }));
+    const watchedSet = new Set(memberData.flatMap((data) => data.watched.map(normalizeMovieId)));
+    const watchlistSet = new Set(memberData.flatMap((data) => data.watchlistItems.map((item) => normalizeMovieId(item.movieId))));
     const blockSince = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
-    const blockedSet = new Set(feedbackEvents
+    const blockedSet = new Set(memberData
+        .flatMap((data) => data.feedbackEvents)
         .filter((event) => event.type === "movie" && event.source === "feedback")
         .filter((event) => event.createdAt >= blockSince)
         .map((event) => normalizeMovieId(event.value)));
+    const historySeeds = Array.from(new Set(memberData
+        .flatMap((data) => data.history)
+        .map((entry) => parseTmdbId(entry.movieId))
+        .filter((id) => typeof id === "number"))).slice(0, 6);
+    const watchlistIds = Array.from(new Set(memberData
+        .flatMap((data) => data.watchlistItems)
+        .map((item) => normalizeMovieId(item.movieId))));
     const baseLimit = Math.max(8, Math.ceil(limit / 4));
     const baseLists = await Promise.all([
         (0, tmdb_1.fetchTrendingMovies)(region, baseLimit),
@@ -40,10 +70,6 @@ preferences) {
     }
     const preferredActorCandidates = await fetchCandidatesByPeople(topKeys(preferences?.actors ?? {}, 6), "actor", region, Math.ceil(limit / 3));
     const preferredDirectorCandidates = await fetchCandidatesByPeople(topKeys(preferences?.directors ?? {}, 4), "director", region, Math.ceil(limit / 4));
-    const historySeeds = history
-        .map((entry) => parseTmdbId(entry.movieId))
-        .filter((id) => typeof id === "number")
-        .slice(0, 4);
     const historyLists = await Promise.all(historySeeds.flatMap((tmdbId) => [
         (0, tmdb_1.fetchSimilarMovies)(tmdbId, 8),
         (0, tmdb_1.fetchRecommendedMovies)(tmdbId, 8)
@@ -55,11 +81,21 @@ preferences) {
         ...preferredDirectorCandidates,
         ...historyLists.flat()
     ];
+    const outsiderCandidates = await buildWatchlistOutsiders(watchlistIds, Math.max(6, Math.floor(limit * 0.2)));
     const poolTarget = limit * 3;
-    const baseQuota = Math.max(1, Math.floor(poolTarget * 0.15));
+    const baseQuota = Math.max(1, Math.floor(poolTarget * 0.30));
     const prefQuota = poolTarget - baseQuota;
     const filtered = buildPool(preferenceCandidates, baseCandidates, prefQuota, baseQuota, watchedSet, watchlistSet, blockedSet);
-    return filtered;
+    const outsiderIds = new Set(outsiderCandidates.map((candidate) => normalizeMovieId(candidate.movieId)));
+    // Arricchimento: prendi i topK dal pool filtrato e aggiungi i suggested
+    const topKForSuggestions = filtered.slice(0, 8); // Primi 8 film per varietà
+    const suggested = await fetchSuggestedForTopK(topKForSuggestions, region, 6);
+    // Unisci i suggested al pool, deduplicando e filtrando come sopra
+    const allCandidates = [...filtered, ...suggested];
+    const enrichedPool = buildPool(allCandidates, [], allCandidates.length, 0, watchedSet, watchlistSet, blockedSet);
+    const pool = mergeOutsiders(enrichedPool, outsiderCandidates, outsiderIds);
+    console.log(`[GroupRecommendation] Pool di candidati unici generato (con suggested): ${pool.length} film diversi`);
+    return { pool, outsiderIds };
 }
 function topKeys(bucket, size) {
     return Object.entries(bucket)
@@ -137,4 +173,44 @@ function buildPool(preferenceCandidates, baseCandidates, prefQuota, baseQuota, w
         }
     }
     return result;
+}
+async function buildWatchlistOutsiders(watchlistIds, limit) {
+    const results = [];
+    for (const movieId of watchlistIds) {
+        if (results.length >= limit)
+            break;
+        const tmdbId = parseTmdbId(movieId);
+        if (!tmdbId)
+            continue;
+        try {
+            const details = await (0, tmdb_1.fetchMovieDetails)(tmdbId);
+            results.push({
+                movieId: details.movieId,
+                title: details.title,
+                year: details.year,
+                popularity: 0,
+                voteAverage: details.rating ?? 0,
+                voteCount: 0,
+                posterPath: details.posterPath
+            });
+        }
+        catch {
+            continue;
+        }
+    }
+    return results;
+}
+function mergeOutsiders(pool, outsiders, outsiderIds) {
+    if (!outsiders.length)
+        return pool;
+    const seen = new Set(pool.map((candidate) => normalizeMovieId(candidate.movieId)));
+    const merged = [...pool];
+    for (const outsider of outsiders) {
+        const id = normalizeMovieId(outsider.movieId);
+        if (seen.has(id))
+            continue;
+        merged.push(outsider);
+        seen.add(id);
+    }
+    return merged;
 }
