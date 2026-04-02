@@ -30,7 +30,9 @@ function AuthCallbackPageInner() {
   const [redirectTo, setRedirectTo] = useState<string>("/")
 
   useEffect(() => {
-    setRedirectTo(getAuthRedirect())
+    // Read destination once synchronously — avoids stale-closure in callbacks
+    const dest = getAuthRedirect()
+    setRedirectTo(dest)
 
     const error = searchParams.get("error")
     const errorDescription = searchParams.get("error_description")
@@ -61,21 +63,17 @@ function AuthCallbackPageInner() {
       try {
         const user = await upsertUserSession(access_token)
         storeSession({ token: access_token, user })
-        clearAuthRedirect()
-        setStatus("success")
-        setDetails("Successfully authenticated. Redirecting you shortly...")
-
-        setTimeout(() => {
-          router.replace(redirectTo)
-        }, 1500)
       } catch {
-        // Session exchanged but user upsert failed — still store token and redirect
         storeSession({ token: access_token })
-        clearAuthRedirect()
-        setStatus("success")
-        setDetails("Successfully authenticated. Redirecting you shortly...")
-        setTimeout(() => router.replace(redirectTo), 1500)
       }
+
+      clearAuthRedirect()
+      setStatus("success")
+      setDetails("Successfully authenticated. Redirecting you shortly...")
+
+      setTimeout(() => {
+        router.replace(dest)  // use local variable, not stale state
+      }, 1500)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

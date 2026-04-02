@@ -9,7 +9,7 @@ import { LogoDisconnectedSpark } from "@/components/LogoDisconnectedSpark"
 import { LogoMagicStroke } from "./LogoMagicStroke"
 
 import { useRouter } from "next/navigation"
-import { clearSession } from "@/lib/auth"
+import { clearSession, getSupabaseClient } from "@/lib/auth"
 
 const AVATAR_OPTIONS = [
   { id: "avatar_01", src: "/Avatar_1.png" },
@@ -33,18 +33,32 @@ export function Header() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const raw = localStorage.getItem("watchwise-user")
-    const hasToken = Boolean(localStorage.getItem("watchwise-token"))
-    setIsLoggedIn(Boolean(raw) || hasToken)
-    if (raw) {
-      try {
-        setUser(JSON.parse(raw))
-      } catch {
+
+    const loadFromStorage = () => {
+      const raw = localStorage.getItem("watchwise-user")
+      const hasToken = Boolean(localStorage.getItem("watchwise-token"))
+      setIsLoggedIn(Boolean(raw) || hasToken)
+      if (raw) {
+        try { setUser(JSON.parse(raw)) } catch { setUser(null) }
+      } else {
         setUser(null)
       }
-    } else {
-      setUser(null)
     }
+
+    loadFromStorage()
+
+    // Re-sync when Supabase session changes (e.g. after OAuth redirect)
+    const supabase = getSupabaseClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        loadFromStorage()
+      } else if (event === "SIGNED_OUT") {
+        setIsLoggedIn(false)
+        setUser(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (
