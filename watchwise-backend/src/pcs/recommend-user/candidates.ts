@@ -18,7 +18,6 @@ import {
 } from "../../data/watch-history/repository";
 import { getListItemsBySlug } from "../../data/lists/repository";
 import { getUserPreferenceEvents } from "../../data/preferences/repository";
-import { ObjectId } from "mongodb";
 import { PreferenceProfile } from "./types";
 
 export async function buildCandidatePool(
@@ -30,10 +29,10 @@ export async function buildCandidatePool(
 ): Promise<MovieCandidate[]> {
 
   const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
-    getRecentlyWatchedMovies(new ObjectId(userId), excludeDays),
+    getRecentlyWatchedMovies(userId, excludeDays),
     getWatchHistoryEntries(userId, 20),
     getListItemsBySlug(userId, "watching-list"),
-    getUserPreferenceEvents(new ObjectId(userId), 300)
+    getUserPreferenceEvents(userId, 300)
   ]);
 
   const watchedSet = new Set(watched.map(normalizeMovieId));

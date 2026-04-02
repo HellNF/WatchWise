@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import { findGroupById } from "../../data/groups/repository";
 import { findGroupSessionById } from "../../data/group-sessions/repository";
 import { AppError } from "../../common/errors";
@@ -31,12 +30,12 @@ export async function recommendForGroup(
   options?: { limit?: number; offset?: number; sessionId?: string }
 ): Promise<GroupRecommendationResult> {
 
-  const group = await findGroupById(new ObjectId(groupId));
+  const group = await findGroupById(groupId);
   if (!group) {
     throw new AppError("NOT_FOUND", 404, "Group not found");
   }
 
-  const isMember = group.members.some((memberId) => memberId.toString() === requesterId);
+  const isMember = group.members.includes(requesterId);
   if (!isMember) {
     throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
   }
@@ -44,8 +43,8 @@ export async function recommendForGroup(
   let sessionContext: RecommendationContext = {};
   let sessionReady = true;
   if (options?.sessionId) {
-    const session = await findGroupSessionById(new ObjectId(options.sessionId));
-    if (!session || session.groupId.toString() !== groupId) {
+    const session = await findGroupSessionById(options.sessionId);
+    if (!session || session.groupId !== groupId) {
       throw new AppError("NOT_FOUND", 404, "Group session not found");
     }
     sessionContext = session.context ?? {};
@@ -61,7 +60,7 @@ export async function recommendForGroup(
     ...(context ?? {})
   };
 
-  const memberIds = group.members.map((memberId) => memberId.toString());
+  const memberIds = group.members;
   const memberProfiles = await buildMemberPreferenceProfiles(memberIds);
   const preferences = aggregateGroupPreferenceProfile(memberProfiles);
 
