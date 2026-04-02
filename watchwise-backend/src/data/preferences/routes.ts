@@ -55,8 +55,8 @@ export async function preferenceRoutes(app: FastifyInstance) {
     async (req) => {
       const rows = await getUserPreferences(req.userId!);
       return rows.map((row) => ({
-        id: row._id.toString(),
-        userId: row.userId.toString(),
+        id: row.id,
+        userId: row.userId,
         type: row.type,
         value: row.value,
         weight: row.weight,
