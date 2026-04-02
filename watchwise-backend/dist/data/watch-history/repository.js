@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.insertWatchHistory = insertWatchHistory;
 exports.getWatchHistory = getWatchHistory;
+exports.getWatchHistoryEntries = getWatchHistoryEntries;
 exports.getRecentlyWatchedMovies = getRecentlyWatchedMovies;
 exports.updateWatchHistory = updateWatchHistory;
 exports.deleteWatchHistory = deleteWatchHistory;
@@ -25,6 +26,13 @@ async function getWatchHistory(userId) {
     return collection()
         .find({ userId: toObjectId(userId) })
         .sort({ watchedAt: -1 })
+        .toArray();
+}
+async function getWatchHistoryEntries(userId, limit = 200) {
+    return collection()
+        .find({ userId: toObjectId(userId) })
+        .sort({ watchedAt: -1 })
+        .limit(limit)
         .toArray();
 }
 async function getRecentlyWatchedMovies(userId, excludeDays) {

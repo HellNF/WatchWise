@@ -4,6 +4,7 @@ exports.userRoutes = userRoutes;
 const auth_1 = require("../../middleware/auth");
 const repository_1 = require("./repository");
 const errors_1 = require("../../common/errors");
+const mongodb_1 = require("mongodb");
 async function userRoutes(app) {
     app.get("/api/users/me", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const userId = req.userId;
@@ -22,6 +23,22 @@ async function userRoutes(app) {
     app.get("/api/users/by-email/:email", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { email } = req.params;
         const user = await (0, repository_1.getUserByEmail)(email);
+        if (!user) {
+            throw new errors_1.AppError("NOT_FOUND", 404, "User not found");
+        }
+        return {
+            id: user._id.toString(),
+            email: user.email,
+            username: user.username,
+            avatar: user.avatar
+        };
+    });
+    app.get("/api/users/:id", { preHandler: [auth_1.requireAuth] }, async (req) => {
+        const { id } = req.params;
+        if (!mongodb_1.ObjectId.isValid(id)) {
+            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid user id");
+        }
+        const user = await (0, repository_1.getUserById)(id);
         if (!user) {
             throw new errors_1.AppError("NOT_FOUND", 404, "User not found");
         }

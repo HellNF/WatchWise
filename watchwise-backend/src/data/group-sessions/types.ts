@@ -1,21 +1,16 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/group-sessions/types.ts
 
 export interface GroupSession {
-  _id: ObjectId;
-
-  groupId: ObjectId;
-
+  id: string;
+  groupId: string;
   context: {
     mood?: string;
     maxDuration?: number;
     preferredGenres?: string[];
     excludedGenres?: string[];
   };
-
   createdAt: Date;
-
   selectedMovieId?: string;
-
   softStartAt?: Date;
   softStartTimeoutMinutes?: number;
   startedAt?: Date;

@@ -1,16 +1,12 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/watch-history/types.ts
 
 export interface WatchHistoryEntry {
-  _id: ObjectId;
-
-  userId: ObjectId;
-  movieId: string; // "tmdb:<id>"
-
+  id: string;
+  userId: string;
+  movieId: string;   // "tmdb:<id>"
   watchedAt: Date;
-
-  rating?: number; // 1..10
+  rating?: number;
   completed: boolean;
 }
-export type NewWatchHistoryEntry = Omit<WatchHistoryEntry, "_id"| "userId"> & {
-  userId: string;
-};
+
+export type NewWatchHistoryEntry = Omit<WatchHistoryEntry, "id">;

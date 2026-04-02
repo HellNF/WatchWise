@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserById = getUserById;
 exports.getUserByEmail = getUserByEmail;
+exports.getUserByOAuth = getUserByOAuth;
 exports.createUser = createUser;
 exports.updateUser = updateUser;
+exports.linkOAuthToUser = linkOAuthToUser;
 exports.deleteUserAndData = deleteUserAndData;
 const mongodb_1 = require("mongodb");
 const mongodb_2 = require("../../config/mongodb");
@@ -16,14 +18,35 @@ async function getUserById(id) {
 async function getUserByEmail(email) {
     return collection().findOne({ email });
 }
+async function getUserByOAuth(oauthProvider, oauthId) {
+    return collection().findOne({ oauthProvider, oauthId });
+}
 async function createUser(data) {
-    const result = await collection().insertOne(data);
-    return { _id: result.insertedId, ...data };
+    try {
+        const result = await collection().insertOne(data);
+        return { _id: result.insertedId, ...data };
+    }
+    catch (err) {
+        if (err.code === 11000 && err.keyPattern?.username) {
+            throw new Error("USERNAME_ALREADY_EXISTS");
+        }
+        throw err;
+    }
 }
 async function updateUser(userId, data) {
     await collection().updateOne({ _id: new mongodb_1.ObjectId(userId) }, {
         $set: {
             ...data,
+            updatedAt: new Date()
+        }
+    });
+}
+async function linkOAuthToUser(userId, oauthProvider, oauthId) {
+    await collection().updateOne({ _id: new mongodb_1.ObjectId(userId) }, {
+        $set: {
+            authProvider: "oauth",
+            oauthProvider,
+            oauthId,
             updatedAt: new Date()
         }
     });

@@ -1,15 +1,12 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/groups/types.ts
 
 export interface Group {
-  _id: ObjectId;
-
+  id: string;
   name: string;
-  members: ObjectId[];
-
-  hostId?: ObjectId;
+  members: string[];   // array di userId (derivato da group_members)
+  hostId?: string;
   joinCode?: string;
   joinCodeExpiresAt?: Date;
   status?: "open" | "locked" | "closed";
-
   createdAt: Date;
 }

@@ -1,8 +1,8 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/lists/types.ts
 
 export interface UserList {
-  _id: ObjectId;
-  userId: ObjectId;
+  id: string;
+  userId: string;
   name: string;
   slug: string;
   isDefault: boolean;
@@ -11,9 +11,9 @@ export interface UserList {
 }
 
 export interface UserListItem {
-  _id: ObjectId;
-  userId: ObjectId;
-  listId: ObjectId;
+  id: string;
+  userId: string;
+  listId: string;
   movieId: string;
   addedAt: Date;
 }

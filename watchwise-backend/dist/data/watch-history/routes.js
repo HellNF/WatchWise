@@ -4,14 +4,29 @@ exports.watchHistoryRoutes = watchHistoryRoutes;
 const auth_1 = require("../../middleware/auth");
 const repository_1 = require("./repository");
 async function watchHistoryRoutes(app) {
+    const normalizeMovieId = (movieId) => {
+        if (!movieId)
+            return movieId;
+        if (movieId.startsWith("tmdb:"))
+            return movieId;
+        const parsed = Number(movieId);
+        return Number.isFinite(parsed) ? `tmdb:${parsed}` : movieId;
+    };
     app.get("/api/watch-history", { preHandler: [auth_1.requireAuth] }, async (req) => {
-        return (0, repository_1.getWatchHistory)(req.userId);
+        const rows = await (0, repository_1.getWatchHistory)(req.userId);
+        return rows.map((row) => ({
+            id: row._id.toString(),
+            movieId: row.movieId,
+            watchedAt: row.watchedAt,
+            rating: row.rating,
+            completed: row.completed
+        }));
     });
     app.post("/api/watch-history", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const body = req.body;
         await (0, repository_1.insertWatchHistory)({
             userId: req.userId,
-            movieId: body.movieId,
+            movieId: normalizeMovieId(body.movieId) ?? body.movieId,
             completed: body.completed ?? true,
             rating: body.rating,
             watchedAt: new Date()

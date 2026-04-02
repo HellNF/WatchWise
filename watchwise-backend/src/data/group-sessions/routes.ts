@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { ObjectId } from "mongodb";
 import { requireAuth } from "../../middleware/auth";
 import { AppError } from "../../common/errors";
 import { findGroupById } from "../groups/repository";
@@ -12,19 +11,13 @@ export async function groupSessionRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
@@ -36,7 +29,7 @@ export async function groupSessionRoutes(app: FastifyInstance) {
             ? latest.createdAt >= dayStart
             : false;
           return {
-            userId: memberId.toString(),
+            userId: memberId,
             completed,
             lastCompletedAt: latest?.createdAt ?? null
           };
@@ -60,19 +53,13 @@ export async function groupSessionRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { groupId } = req.params as { groupId: string };
-      if (!ObjectId.isValid(groupId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group id");
-      }
 
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
@@ -81,7 +68,7 @@ export async function groupSessionRoutes(app: FastifyInstance) {
 
       const softStartAt = new Date();
       const session = await createGroupSession({
-        groupId: new ObjectId(groupId),
+        groupId,
         context,
         createdAt: new Date(),
         status: "pending",
@@ -90,8 +77,8 @@ export async function groupSessionRoutes(app: FastifyInstance) {
       });
 
       return {
-        id: session._id.toString(),
-        groupId: session.groupId.toString(),
+        id: session.id,
+        groupId: session.groupId,
         context: session.context,
         createdAt: session.createdAt,
         selectedMovieId: session.selectedMovieId,
@@ -112,30 +99,23 @@ export async function groupSessionRoutes(app: FastifyInstance) {
         sessionId: string;
       };
 
-      if (!ObjectId.isValid(groupId) || !ObjectId.isValid(sessionId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group/session id");
-      }
-
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
-      const session = await findGroupSessionById(new ObjectId(sessionId));
-      if (!session || session.groupId.toString() !== groupId) {
+      const session = await findGroupSessionById(sessionId);
+      if (!session || session.groupId !== groupId) {
         throw new AppError("NOT_FOUND", 404, "Group session not found");
       }
 
       return {
-        id: session._id.toString(),
-        groupId: session.groupId.toString(),
+        id: session.id,
+        groupId: session.groupId,
         context: session.context,
         createdAt: session.createdAt,
         selectedMovieId: session.selectedMovieId,
@@ -156,24 +136,17 @@ export async function groupSessionRoutes(app: FastifyInstance) {
         sessionId: string;
       };
 
-      if (!ObjectId.isValid(groupId) || !ObjectId.isValid(sessionId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group/session id");
-      }
-
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
-      const session = await findGroupSessionById(new ObjectId(sessionId));
-      if (!session || session.groupId.toString() !== groupId) {
+      const session = await findGroupSessionById(sessionId);
+      if (!session || session.groupId !== groupId) {
         throw new AppError("NOT_FOUND", 404, "Group session not found");
       }
 
@@ -182,7 +155,7 @@ export async function groupSessionRoutes(app: FastifyInstance) {
       const safeTimeout = Math.max(1, Math.min(timeoutMinutes, 30));
       const softStartAt = session.softStartAt ?? new Date();
 
-      await updateGroupSessionById(session._id, {
+      await updateGroupSessionById(session.id, {
         softStartAt,
         softStartTimeoutMinutes: safeTimeout,
         status: session.status ?? "pending"
@@ -204,26 +177,22 @@ export async function groupSessionRoutes(app: FastifyInstance) {
         sessionId: string;
       };
 
-      if (!ObjectId.isValid(groupId) || !ObjectId.isValid(sessionId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group/session id");
-      }
-
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      if (group.hostId?.toString() !== req.userId) {
+      if (group.hostId !== req.userId) {
         throw new AppError("UNAUTHORIZED", 403, "Only host can start session");
       }
 
-      const session = await findGroupSessionById(new ObjectId(sessionId));
-      if (!session || session.groupId.toString() !== groupId) {
+      const session = await findGroupSessionById(sessionId);
+      if (!session || session.groupId !== groupId) {
         throw new AppError("NOT_FOUND", 404, "Group session not found");
       }
 
       const startedAt = new Date();
-      await updateGroupSessionById(session._id, {
+      await updateGroupSessionById(session.id, {
         status: "started",
         startedAt
       });
@@ -241,24 +210,17 @@ export async function groupSessionRoutes(app: FastifyInstance) {
         sessionId: string;
       };
 
-      if (!ObjectId.isValid(groupId) || !ObjectId.isValid(sessionId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid group/session id");
-      }
-
-      const group = await findGroupById(new ObjectId(groupId));
+      const group = await findGroupById(groupId);
       if (!group) {
         throw new AppError("NOT_FOUND", 404, "Group not found");
       }
 
-      const isMember = group.members.some(
-        (memberId) => memberId.toString() === req.userId
-      );
-      if (!isMember) {
+      if (!group.members.includes(req.userId!)) {
         throw new AppError("UNAUTHORIZED", 403, "User is not a group member");
       }
 
-      const session = await findGroupSessionById(new ObjectId(sessionId));
-      if (!session || session.groupId.toString() !== groupId) {
+      const session = await findGroupSessionById(sessionId);
+      if (!session || session.groupId !== groupId) {
         throw new AppError("NOT_FOUND", 404, "Group session not found");
       }
 
@@ -270,7 +232,7 @@ export async function groupSessionRoutes(app: FastifyInstance) {
             ? latest.createdAt >= dayStart
             : false;
           return {
-            userId: memberId.toString(),
+            userId: memberId,
             completed,
             lastCompletedAt: latest?.createdAt ?? null
           };
@@ -292,7 +254,7 @@ export async function groupSessionRoutes(app: FastifyInstance) {
       else if (timedOut) reason = "timeout";
 
       if (ready && session.status !== "started") {
-        await updateGroupSessionById(session._id, {
+        await updateGroupSessionById(session.id, {
           status: "started",
           startedAt: now
         });

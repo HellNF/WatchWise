@@ -1,15 +1,11 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/group-feedback/types.ts
 
 export interface GroupFeedbackEvent {
-  _id: ObjectId;
-
-  sessionId: ObjectId;
-  userId: ObjectId;
-
+  id: string;
+  sessionId: string;
+  userId: string;
   movieId: string;
-
   rating?: number;
   liked?: boolean;
-
   createdAt: Date;
 }

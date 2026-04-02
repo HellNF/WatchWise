@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { ObjectId } from "mongodb";
 import { requireAuth } from "../../middleware/auth";
 import { AppError } from "../../common/errors";
 import {
@@ -20,7 +19,7 @@ export async function listRoutes(app: FastifyInstance) {
     async (req) => {
       const lists = await getUserLists(req.userId!);
       return lists.map((list) => ({
-        id: list._id.toString(),
+        id: list.id,
         name: list.name,
         slug: list.slug,
         isDefault: list.isDefault
@@ -43,7 +42,7 @@ export async function listRoutes(app: FastifyInstance) {
       const list = await createUserList(req.userId!, name);
 
       return {
-        id: list._id.toString(),
+        id: list.id,
         name: list.name,
         slug: list.slug,
         isDefault: list.isDefault
@@ -56,9 +55,7 @@ export async function listRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (req) => {
       const { listId } = req.params as { listId: string };
-      if (!ObjectId.isValid(listId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid list id");
-      }
+
       const list = await getUserListById(req.userId!, listId);
 
       if (!list) {
@@ -77,9 +74,7 @@ export async function listRoutes(app: FastifyInstance) {
       const body = req.body as any;
       const movieId = String(body?.movieId ?? "").trim();
 
-      if (!ObjectId.isValid(listId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid list id");
-      }
+
       if (!movieId) {
         throw new AppError("INVALID_INPUT", 400, "Missing movieId");
       }
@@ -103,9 +98,7 @@ export async function listRoutes(app: FastifyInstance) {
         movieId: string;
       };
 
-      if (!ObjectId.isValid(listId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid list id");
-      }
+
 
       const list = await getUserListById(req.userId!, listId);
       if (!list) {
@@ -123,9 +116,7 @@ export async function listRoutes(app: FastifyInstance) {
     async (req) => {
       const { listId } = req.params as { listId: string };
 
-      if (!ObjectId.isValid(listId)) {
-        throw new AppError("INVALID_INPUT", 400, "Invalid list id");
-      }
+
 
       const list = await getUserListById(req.userId!, listId);
       if (!list) {

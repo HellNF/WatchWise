@@ -1,4 +1,4 @@
-import { getStoredToken } from "@/lib/auth"
+import { getStoredToken, getValidToken } from "@/lib/auth"
 
 type ApiErrorDetails = {
   status: number
@@ -49,7 +49,9 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
 
   const url = `${apiRoot}${path.startsWith("/") ? "" : "/"}${path}`
   const headers = new Headers()
-  const token = getStoredToken()
+  const token = process.env.NODE_ENV === "production"
+    ? await getValidToken()
+    : (getStoredToken() ?? null)
   if (token) {
     headers.set("Authorization", `Bearer ${token}`)
   } else if (process.env.NODE_ENV !== "production") {
@@ -226,9 +228,9 @@ export type WatchHistoryEntry = {
 
 export type Profile = {
   id: string
-  email: string
   username: string
   avatar: string
+  email?: string
   authProvider?: string
 }
 

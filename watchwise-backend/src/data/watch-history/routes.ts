@@ -22,7 +22,7 @@ export async function watchHistoryRoutes(app: FastifyInstance) {
     async (req) => {
       const rows = await getWatchHistory(req.userId!);
       return rows.map((row) => ({
-        id: row._id.toString(),
+        id: row.id,
         movieId: row.movieId,
         watchedAt: row.watchedAt,
         rating: row.rating,

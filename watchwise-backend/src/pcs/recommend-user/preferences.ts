@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import { getUserPreferenceEvents } from "../../data/preferences/repository";
 import { getWatchHistoryEntries } from "../../data/watch-history/repository";
 import { WatchHistoryEntry } from "../../data/watch-history/types";
@@ -24,10 +23,7 @@ export async function buildPreferenceProfile(
   userId: string
 ): Promise<PreferenceProfile> {
 
-  const events = await getUserPreferenceEvents(
-    new ObjectId(userId),
-    300
-  );
+  const events = await getUserPreferenceEvents(userId, 300);
 
 
   const derivedEvents = await derivePreferenceEventsFromWatchHistory(userId, 200);

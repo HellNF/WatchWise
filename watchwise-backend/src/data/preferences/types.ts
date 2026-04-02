@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+// watchwise-backend/src/data/preferences/types.ts
 
 export type PreferenceType =
   | "genre"
@@ -19,11 +19,11 @@ export type PreferenceSource =
   | "feedback";
 
 export interface UserPreferenceEvent {
-  _id: ObjectId;
-  userId: ObjectId;
+  id: string;
+  userId: string;
   type: PreferenceType;
   value: string;
-  weight: number; // 0..1
+  weight: number;
   source: PreferenceSource;
   createdAt: Date;
 }

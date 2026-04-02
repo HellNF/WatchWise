@@ -38,7 +38,6 @@ import {
 } from "../../data/watch-history/repository";
 import { getListItemsBySlug } from "../../data/lists/repository";
 import { getUserPreferenceEvents } from "../../data/preferences/repository";
-import { ObjectId } from "mongodb";
 import { PreferenceProfile } from "./types";
 
 export async function buildGroupCandidatePool(
@@ -52,10 +51,10 @@ export async function buildGroupCandidatePool(
   const memberData = await Promise.all(
     memberIds.map(async (memberId) => {
       const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
-        getRecentlyWatchedMovies(new ObjectId(memberId), excludeDays),
+        getRecentlyWatchedMovies(memberId, excludeDays),
         getWatchHistoryEntries(memberId, 20),
         getListItemsBySlug(memberId, "watching-list"),
-        getUserPreferenceEvents(new ObjectId(memberId), 300)
+        getUserPreferenceEvents(memberId, 300)
       ]);
 
       return { watched, history, watchlistItems, feedbackEvents };
