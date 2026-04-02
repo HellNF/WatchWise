@@ -71,8 +71,11 @@ function AuthCallbackPageInner() {
       setStatus("success")
       setDetails("Successfully authenticated. Redirecting you shortly...")
 
+      // Full page reload so that the Header (persistent layout) remounts and
+      // reads the freshly-written localStorage. router.replace() is soft-nav
+      // and would leave the Header in a stale "not logged in" state.
       setTimeout(() => {
-        router.replace(dest)  // use local variable, not stale state
+        window.location.href = dest
       }, 1500)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
