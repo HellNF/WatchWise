@@ -12,12 +12,17 @@
 
 ## Pre-requisiti (manuali, prima di iniziare)
 
-- [ ] Fork del repo su GitHub (mantieni l'originale intatto)
+- [ ] Crea il branch di migrazione:
+  ```bash
+  git checkout -b feat/supabase-migration
+  git push -u origin feat/supabase-migration
+  ```
 - [ ] Crea un nuovo progetto Supabase su [supabase.com](https://supabase.com)
 - [ ] Abilita Google OAuth e GitHub OAuth in Supabase → Authentication → Providers
 - [ ] Crea due progetti Vercel puntando allo stesso repo:
-  - `watchwise-backend` → Root Directory: `watchwise-backend`
-  - `watchwise-frontend` → Root Directory: `watchwise-frontend`
+  - `watchwise-backend` → Root Directory: `watchwise-backend` → Production Branch: `main`
+  - `watchwise-frontend` → Root Directory: `watchwise-frontend` → Production Branch: `main`
+- [ ] I push su `feat/supabase-migration` genereranno automaticamente Preview Deployments su Vercel — testa lì prima di mergiare su `main`
 
 ---
 
