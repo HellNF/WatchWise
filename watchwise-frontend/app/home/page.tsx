@@ -6,6 +6,7 @@ import {
   type HomeMovieItem,
 } from "@/components/home-page"
 import { Header } from "@/components/header"
+import { DailyMoodOverlay } from "@/components/daily-mood-overlay"
 import {
   getMovieDetails,
   getMoviesByCategory,
@@ -241,6 +242,7 @@ export default async function HomePage() {
       {/* --- CONTENT --- */}
       <div className="relative z-10">
         <Header />
+        <DailyMoodOverlay />
         
         {/* Pass data to Client Component for rendering Carousel & Rows */}
         <HomePageClient heroItems={heroItems} categories={categories} />

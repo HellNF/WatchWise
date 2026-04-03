@@ -8,11 +8,28 @@ import { getMoviesByCategory, type MovieListItem, type MoviesCategory } from "@/
 import { MovieCard } from "@/components/movie-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@radix-ui/react-accordion"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Sparkles, Users, Zap, Star, Menu, SlidersHorizontal, Film, ArrowRight, CheckCircle2 } from "lucide-react"
 import {LogoMagicStroke} from "@/components/LogoMagicStroke"
 import { useRouter } from "next/navigation"
+import { getSupabaseClient } from "@/lib/auth"
+
+const AVATAR_OPTIONS = [
+  { id: "avatar_01", src: "/Avatar_1.png" },
+  { id: "avatar_02", src: "/Avatar_2.png" },
+  { id: "avatar_03", src: "/Avatar_3.png" },
+  { id: "avatar_04", src: "/Avatar_4.png" },
+  { id: "avatar_05", src: "/Avatar_5.png" },
+  { id: "avatar_06", src: "/Avatar_6.png" },
+  { id: "avatar_07", src: "/Avatar_7.png" },
+  { id: "avatar_08", src: "/Avatar_8.png" },
+  { id: "avatar_09", src: "/Avatar_9.png" },
+  { id: "avatar_10", src: "/Avatar_10.png" },
+  { id: "avatar_11", src: "/Avatar_11.png" },
+  { id: "avatar_12", src: "/Avatar_12.png" },
+]
 
 // --- Mock Data & Components ---
 // (Dati invariati per coerenza)
@@ -76,10 +93,52 @@ function StickyHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { scrollY } = useScroll()
   const [scrolled, setScrolled] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<{ username?: string; avatar?: string } | null>(null)
   const router = useRouter()
+
   React.useEffect(() => {
     return scrollY.onChange((latest) => setScrolled(latest > 20))
   }, [scrollY])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const loadFromStorage = () => {
+      const raw = localStorage.getItem("watchwise-user")
+      const hasToken = Boolean(localStorage.getItem("watchwise-token"))
+      setIsLoggedIn(Boolean(raw) || hasToken)
+      if (raw) {
+        try { setUser(JSON.parse(raw)) } catch { setUser(null) }
+      } else {
+        setUser(null)
+      }
+    }
+
+    loadFromStorage()
+
+    const onStorage = () => loadFromStorage()
+    window.addEventListener("watchwise-auth-changed", onStorage)
+
+    const supabase = getSupabaseClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        setTimeout(loadFromStorage, 200)
+      } else if (event === "SIGNED_OUT") {
+        setIsLoggedIn(false)
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener("watchwise-auth-changed", onStorage)
+    }
+  }, [])
+
+  const avatarSrc = user?.avatar
+    ? (AVATAR_OPTIONS.find(opt => opt.id === user.avatar)?.src ?? "/friendly-avatar-illustration.jpg")
+    : "/friendly-avatar-illustration.jpg"
 
   return (
     <header className={cn(
@@ -88,7 +147,7 @@ function StickyHeader() {
     )}>
       <div className="flex items-center justify-between px-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2 cursor-pointer">
-          <div className=" p-1.5 rounded-lg">
+          <div className="p-1.5 rounded-lg">
             <LogoMagicStroke className="h-10 w-auto" />
           </div>
           <span className="text-xl font-bold tracking-tight">WatchWise</span>
@@ -101,13 +160,38 @@ function StickyHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="hidden md:inline-flex hover:bg-white/5" size="sm" onClick={()=>{
-            router.push('/login')
-          }}>Sign in</Button>
-          <Button className="glow-accent font-semibold rounded-full px-6" size="sm" onClick={()=>{
-            router.push('/register')
-          }
-          }>Get Started</Button>
+          {isLoggedIn ? (
+            <>
+              <Button
+                className="hidden md:inline-flex glow-accent font-semibold rounded-full px-6"
+                size="sm"
+                onClick={() => router.push('/home')}
+              >
+                Go to app
+              </Button>
+              <button
+                className="focus:outline-none"
+                onClick={() => router.push("/profile")}
+                aria-label="Go to profile"
+              >
+                <Avatar className="h-9 w-9 ring-2 ring-primary/20 cursor-pointer hover:ring-primary/60 transition-all">
+                  <AvatarImage src={avatarSrc} />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+                    {user?.username ? user.username.slice(0, 2).toUpperCase() : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" className="hidden md:inline-flex hover:bg-white/5" size="sm" onClick={() => router.push('/login')}>
+                Sign in
+              </Button>
+              <Button className="glow-accent font-semibold rounded-full px-6" size="sm" onClick={() => router.push('/register')}>
+                Get Started
+              </Button>
+            </>
+          )}
           <button className="md:hidden p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)}>
             <Menu />
           </button>
@@ -122,15 +206,31 @@ function StickyHeader() {
             exit={{ height: 0, opacity: 0 }}
             className="md:hidden overflow-hidden bg-background border-b border-border/40"
           >
-             <div className="px-6 py-4 flex flex-col gap-4">
-               {["Features", "Movie Night", "FAQ"].map((item) => (
-                 <a key={item} href="#" className="text-lg font-medium" onClick={() => setMenuOpen(false)}>{item}</a>
-               ))}
-               <div className="h-px bg-border/50 my-2" />
-               <Button variant="outline" className="w-full justify-start" onClick={()=>{
-                router.push('/login')
-               }}>Sign in</Button>
-             </div>
+            <div className="px-6 py-4 flex flex-col gap-4">
+              {["Features", "Movie Night", "FAQ"].map((item) => (
+                <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="text-lg font-medium" onClick={() => setMenuOpen(false)}>{item}</a>
+              ))}
+              <div className="h-px bg-border/50 my-2" />
+              {isLoggedIn ? (
+                <>
+                  <Button className="w-full justify-start glow-accent rounded-full" onClick={() => { router.push('/home'); setMenuOpen(false) }}>
+                    Go to app
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => { router.push('/profile'); setMenuOpen(false) }}>
+                    Profile
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => { router.push('/login'); setMenuOpen(false) }}>
+                    Sign in
+                  </Button>
+                  <Button className="w-full justify-start glow-accent rounded-full" onClick={() => { router.push('/register'); setMenuOpen(false) }}>
+                    Get Started
+                  </Button>
+                </>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -73,7 +73,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl border-b border-border/50">
       <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-16 max-w-10/12 mx-auto">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={isLoggedIn ? "/home" : "/"} className="flex items-center gap-2">
           <div className="relative">
             <LogoMagicStroke className="h-10 w-auto" />
             

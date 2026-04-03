@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, ArrowRight, Plus, Link2, LogOut, Loader2, Sparkles } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+} from "@/components/ui/alert-dialog"
+import { Users, ArrowRight, Plus, Link2, LogOut, Loader2, Sparkles, TriangleAlert } from "lucide-react"
 import {
   createGroup,
   getGroups,
@@ -32,6 +38,7 @@ export default function GroupsPage() {
   const [creating, setCreating] = useState(false)
   const [joining, setJoining] = useState(false)
   const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null)
+  const [confirmLeaveGroup, setConfirmLeaveGroup] = useState<GroupSummary | null>(null)
 
   const loadGroups = async () => {
     try {
@@ -253,19 +260,20 @@ export default function GroupsPage() {
                               Open <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
                           </Button>
-                          
+
                           <Button
                             variant="ghost"
-                            size="icon"
-                            disabled={loading || leavingGroupId === group.id}
-                            onClick={() => handleLeaveGroup(group.id)}
-                            className="h-10 w-10 rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="Leave Group"
+                            disabled={leavingGroupId === group.id}
+                            onClick={() => setConfirmLeaveGroup(group)}
+                            className="h-10 px-4 rounded-full border border-rose-500/25 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/50 transition-all duration-200 font-medium gap-2"
                           >
                             {leavingGroupId === group.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <LogOut className="h-4 w-4" />
+                              <>
+                                <LogOut className="h-4 w-4" />
+                                <span className="text-sm">Leave</span>
+                              </>
                             )}
                           </Button>
                         </div>
@@ -281,6 +289,77 @@ export default function GroupsPage() {
 
         <BottomNav />
       </div>
+
+      {/* ── Leave Group Confirmation Dialog ── */}
+      <AlertDialog open={!!confirmLeaveGroup} onOpenChange={(open) => { if (!open) setConfirmLeaveGroup(null) }}>
+        <AlertDialogPortal>
+          <AlertDialogOverlay className="bg-black/60 backdrop-blur-md" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.93, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+            >
+              {/* Top accent line */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-rose-500/60 to-transparent" />
+
+              <div className="p-7 flex flex-col items-center text-center gap-5">
+                {/* Icon */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-rose-500/20 blur-xl rounded-full" />
+                  <div className="relative w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                    <TriangleAlert className="h-6 w-6 text-rose-400" />
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-white">Leave this group?</h2>
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    You're about to leave{" "}
+                    <span className="font-semibold text-zinc-200">
+                      "{confirmLeaveGroup?.name}"
+                    </span>
+                    . You'll need the invite code to rejoin.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex w-full gap-3 pt-1">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 h-11 rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5 hover:text-white font-medium"
+                    onClick={() => setConfirmLeaveGroup(null)}
+                  >
+                    Stay
+                  </Button>
+                  <Button
+                    className="flex-1 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 hover:border-rose-500/50 hover:text-rose-200 font-semibold transition-all duration-200 gap-2"
+                    disabled={!!leavingGroupId}
+                    onClick={async () => {
+                      if (!confirmLeaveGroup) return
+                      const id = confirmLeaveGroup.id
+                      setConfirmLeaveGroup(null)
+                      await handleLeaveGroup(id)
+                    }}
+                  >
+                    {leavingGroupId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <LogOut className="h-4 w-4" />
+                        Leave
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </AlertDialogPortal>
+      </AlertDialog>
     </main>
   )
 }
