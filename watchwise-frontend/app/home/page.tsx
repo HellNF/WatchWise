@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import {
   HomePageClient,
   type HomeCategory,
@@ -247,6 +248,7 @@ export default async function HomePage() {
         {/* Pass data to Client Component for rendering Carousel & Rows */}
         <HomePageClient heroItems={heroItems} categories={categories} />
         
+        <Footer />
         <BottomNav />
       </div>
     </main>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
 import { Check, ClipboardCheck, Trash2, Loader2, CalendarClock, Star } from "lucide-react"
@@ -263,6 +264,7 @@ export default function SeenMoviesPage() {
 
         {content}
       </div>
+      <Footer />
       <BottomNav />
     </main>
   )

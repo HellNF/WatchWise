@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -287,6 +288,7 @@ export default function GroupsPage() {
           </div>
         </div>
 
+        <Footer />
         <BottomNav />
       </div>
 

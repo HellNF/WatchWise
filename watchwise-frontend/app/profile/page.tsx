@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -806,6 +807,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <Footer />
       <BottomNav />
 
       {/* Avatar Modal */}

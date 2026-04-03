@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { MovieCard } from "@/components/movie-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -309,6 +310,7 @@ function ListsPageInner() {
           </div>
         )}
       </div>
+      <Footer />
       <BottomNav />
     </main>
   )

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { MovieCard } from "@/components/movie-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -654,6 +655,7 @@ export default function SearchPage() {
           </div>
         </div>
       </div>
+      <Footer />
       <BottomNav />
     </main>
   )

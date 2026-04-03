@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
 import { Button } from "@/components/ui/button"
@@ -534,6 +535,7 @@ export default function SuggestionsPage() {
 
         </div>
       </div>
+      <Footer />
       <BottomNav />
     </main>
   )

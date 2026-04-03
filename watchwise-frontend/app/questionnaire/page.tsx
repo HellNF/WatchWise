@@ -3,6 +3,7 @@
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
+import { Footer } from "@/components/footer"
 import { MoodQuestionnaire, type UserPreferences } from "@/components/mood-questionnaire"
 import { useRouter } from "next/navigation"
 import { postQuestionnairePreferences } from "@/lib/api"
@@ -83,6 +84,7 @@ export default function QuestionnairePage() {
 
       </div>
       
+      <Footer />
       <BottomNav />
     </main>
   )
