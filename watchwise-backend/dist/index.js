@@ -7,7 +7,6 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const fastify_1 = __importDefault(require("fastify"));
 const cors_1 = __importDefault(require("@fastify/cors"));
-const mongodb_1 = require("./config/mongodb");
 const routes_1 = require("./auth/routes");
 const routes_2 = require("./data/users/routes");
 const routes_3 = require("./pcs/routes");
@@ -24,14 +23,11 @@ app.get("/health", async () => {
 });
 const start = async () => {
     try {
-        // INIZIALIZZA MONGODB 
-        await (0, mongodb_1.connectMongo)();
         await app.register(cors_1.default, {
             origin: true,
             credentials: true,
             methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
         });
-        // REGISTRA ROUTES
         await (0, routes_1.authRoutes)(app);
         await (0, routes_2.userRoutes)(app);
         await (0, routes_3.pcsRoutes)(app);
@@ -42,9 +38,8 @@ const start = async () => {
         await (0, routes_7.listRoutes)(app);
         await (0, routes_8.groupRoutes)(app);
         await (0, routes_9.groupSessionRoutes)(app);
-        // START SERVER
         await app.listen({ port: 3001, host: "0.0.0.0" });
-        console.log("🚀 WatchWise backend running on http://localhost:3001");
+        console.log("WatchWise backend running on http://localhost:3001");
     }
     catch (err) {
         app.log.error(err);

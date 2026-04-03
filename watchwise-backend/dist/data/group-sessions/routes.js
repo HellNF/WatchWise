@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.groupSessionRoutes = groupSessionRoutes;
-const mongodb_1 = require("mongodb");
 const auth_1 = require("../../middleware/auth");
 const errors_1 = require("../../common/errors");
 const repository_1 = require("../groups/repository");
@@ -10,15 +9,11 @@ const repository_3 = require("../preferences/repository");
 async function groupSessionRoutes(app) {
     app.get("/api/groups/:groupId/questionnaire-status", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
         const dayStart = getDayStartUTC();
@@ -28,7 +23,7 @@ async function groupSessionRoutes(app) {
                 ? latest.createdAt >= dayStart
                 : false;
             return {
-                userId: memberId.toString(),
+                userId: memberId,
                 completed,
                 lastCompletedAt: latest?.createdAt ?? null
             };
@@ -45,22 +40,18 @@ async function groupSessionRoutes(app) {
     });
     app.post("/api/groups/:groupId/sessions", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
         const body = req.body;
         const context = body?.context ?? {};
         const softStartAt = new Date();
         const session = await (0, repository_2.createGroupSession)({
-            groupId: new mongodb_1.ObjectId(groupId),
+            groupId,
             context,
             createdAt: new Date(),
             status: "pending",
@@ -68,8 +59,8 @@ async function groupSessionRoutes(app) {
             softStartTimeoutMinutes: 10
         });
         return {
-            id: session._id.toString(),
-            groupId: session.groupId.toString(),
+            id: session.id,
+            groupId: session.groupId,
             context: session.context,
             createdAt: session.createdAt,
             selectedMovieId: session.selectedMovieId,
@@ -81,24 +72,20 @@ async function groupSessionRoutes(app) {
     });
     app.get("/api/groups/:groupId/sessions/:sessionId", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId, sessionId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId) || !mongodb_1.ObjectId.isValid(sessionId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group/session id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
-        const session = await (0, repository_2.findGroupSessionById)(new mongodb_1.ObjectId(sessionId));
-        if (!session || session.groupId.toString() !== groupId) {
+        const session = await (0, repository_2.findGroupSessionById)(sessionId);
+        if (!session || session.groupId !== groupId) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group session not found");
         }
         return {
-            id: session._id.toString(),
-            groupId: session.groupId.toString(),
+            id: session.id,
+            groupId: session.groupId,
             context: session.context,
             createdAt: session.createdAt,
             selectedMovieId: session.selectedMovieId,
@@ -110,26 +97,22 @@ async function groupSessionRoutes(app) {
     });
     app.post("/api/groups/:groupId/sessions/:sessionId/softstart", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId, sessionId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId) || !mongodb_1.ObjectId.isValid(sessionId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group/session id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
-        const session = await (0, repository_2.findGroupSessionById)(new mongodb_1.ObjectId(sessionId));
-        if (!session || session.groupId.toString() !== groupId) {
+        const session = await (0, repository_2.findGroupSessionById)(sessionId);
+        if (!session || session.groupId !== groupId) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group session not found");
         }
         const body = req.body;
         const timeoutMinutes = Number(body?.timeoutMinutes ?? 10);
         const safeTimeout = Math.max(1, Math.min(timeoutMinutes, 30));
         const softStartAt = session.softStartAt ?? new Date();
-        await (0, repository_2.updateGroupSessionById)(session._id, {
+        await (0, repository_2.updateGroupSessionById)(session.id, {
             softStartAt,
             softStartTimeoutMinutes: safeTimeout,
             status: session.status ?? "pending"
@@ -141,22 +124,19 @@ async function groupSessionRoutes(app) {
     });
     app.post("/api/groups/:groupId/sessions/:sessionId/start", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId, sessionId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId) || !mongodb_1.ObjectId.isValid(sessionId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group/session id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        if (group.hostId?.toString() !== req.userId) {
+        if (group.hostId !== req.userId) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "Only host can start session");
         }
-        const session = await (0, repository_2.findGroupSessionById)(new mongodb_1.ObjectId(sessionId));
-        if (!session || session.groupId.toString() !== groupId) {
+        const session = await (0, repository_2.findGroupSessionById)(sessionId);
+        if (!session || session.groupId !== groupId) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group session not found");
         }
         const startedAt = new Date();
-        await (0, repository_2.updateGroupSessionById)(session._id, {
+        await (0, repository_2.updateGroupSessionById)(session.id, {
             status: "started",
             startedAt
         });
@@ -164,19 +144,15 @@ async function groupSessionRoutes(app) {
     });
     app.get("/api/groups/:groupId/sessions/:sessionId/softstart/status", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId, sessionId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId) || !mongodb_1.ObjectId.isValid(sessionId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group/session id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
-        const session = await (0, repository_2.findGroupSessionById)(new mongodb_1.ObjectId(sessionId));
-        if (!session || session.groupId.toString() !== groupId) {
+        const session = await (0, repository_2.findGroupSessionById)(sessionId);
+        if (!session || session.groupId !== groupId) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group session not found");
         }
         const dayStart = getDayStartUTC();
@@ -186,7 +162,7 @@ async function groupSessionRoutes(app) {
                 ? latest.createdAt >= dayStart
                 : false;
             return {
-                userId: memberId.toString(),
+                userId: memberId,
                 completed,
                 lastCompletedAt: latest?.createdAt ?? null
             };
@@ -205,7 +181,7 @@ async function groupSessionRoutes(app) {
         else if (timedOut)
             reason = "timeout";
         if (ready && session.status !== "started") {
-            await (0, repository_2.updateGroupSessionById)(session._id, {
+            await (0, repository_2.updateGroupSessionById)(session.id, {
                 status: "started",
                 startedAt: now
             });

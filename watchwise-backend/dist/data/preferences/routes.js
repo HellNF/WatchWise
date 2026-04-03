@@ -40,8 +40,8 @@ async function preferenceRoutes(app) {
     app.get("/api/preferences", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const rows = await (0, repository_1.getUserPreferences)(req.userId);
         return rows.map((row) => ({
-            id: row._id.toString(),
-            userId: row.userId.toString(),
+            id: row.id,
+            userId: row.userId,
             type: row.type,
             value: row.value,
             weight: row.weight,

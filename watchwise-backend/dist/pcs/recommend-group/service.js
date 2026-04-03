@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recommendForGroup = recommendForGroup;
-const mongodb_1 = require("mongodb");
 const repository_1 = require("../../data/groups/repository");
 const repository_2 = require("../../data/group-sessions/repository");
 const errors_1 = require("../../common/errors");
@@ -15,19 +14,19 @@ const serendipity_1 = require("../recommend-user/serendipity");
 const config_1 = require("../config");
 const EXCLUDED_ORIGINAL_LANGUAGES = new Set(["hi"]);
 async function recommendForGroup(groupId, requesterId, context, options) {
-    const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+    const group = await (0, repository_1.findGroupById)(groupId);
     if (!group) {
         throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
     }
-    const isMember = group.members.some((memberId) => memberId.toString() === requesterId);
+    const isMember = group.members.includes(requesterId);
     if (!isMember) {
         throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
     }
     let sessionContext = {};
     let sessionReady = true;
     if (options?.sessionId) {
-        const session = await (0, repository_2.findGroupSessionById)(new mongodb_1.ObjectId(options.sessionId));
-        if (!session || session.groupId.toString() !== groupId) {
+        const session = await (0, repository_2.findGroupSessionById)(options.sessionId);
+        if (!session || session.groupId !== groupId) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group session not found");
         }
         sessionContext = session.context ?? {};
@@ -40,7 +39,7 @@ async function recommendForGroup(groupId, requesterId, context, options) {
         ...sessionContext,
         ...(context ?? {})
     };
-    const memberIds = group.members.map((memberId) => memberId.toString());
+    const memberIds = group.members;
     const memberProfiles = await (0, preferences_1.buildMemberPreferenceProfiles)(memberIds);
     const preferences = (0, preferences_1.aggregateGroupPreferenceProfile)(memberProfiles);
     const { pool: candidates, outsiderIds } = await (0, candidates_1.buildGroupCandidatePool)(memberIds, "IT", 50, 365, preferences);
@@ -53,11 +52,23 @@ async function recommendForGroup(groupId, requesterId, context, options) {
         return !EXCLUDED_ORIGINAL_LANGUAGES.has(lang);
     });
     const scored = (0, scoring_1.scoreMovies)(filteredCandidates, mergedContext, preferences).map((entry) => {
+        let s = entry.score;
+        // Jitter: rumore calibrato per non sopraffare i segnali di rating/popularity
         const jitter = config_1.PCS_CONFIG.exploration.jitter ?? 0;
-        if (!jitter)
-            return entry;
-        const noise = (Math.random() * 2 - 1) * jitter;
-        return { ...entry, score: entry.score + noise };
+        if (jitter) {
+            s += (Math.random() * 2 - 1) * jitter;
+        }
+        // Watchlist bonus: un film che i membri hanno già detto di voler vedere
+        // merita di emergere nel ranking rispetto a candidati generici.
+        if (outsiderIds.has(entry.movie.movieId)) {
+            s += config_1.PCS_CONFIG.group.watchlistBonus;
+            return {
+                ...entry,
+                score: Math.min(1, s),
+                reasons: [...entry.reasons, "In your group's watchlist"].slice(0, 3)
+            };
+        }
+        return { ...entry, score: Math.min(1, s) };
     });
     const ranked = scored.sort((a, b) => b.score - a.score);
     const mixed = applyTopMix(ranked, {
@@ -136,9 +147,17 @@ async function computeCompatibilityScores(candidates, context, memberProfiles) {
         const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
         const min = Math.min(...values);
         const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-        const compatibility = clamp(0.6 * mean + 0.3 * min - 0.1 * variance, 0, 1);
-        const movieId = candidates[i].movieId;
-        result.set(movieId, compatibility);
+        // Formula aggiornata: più peso al minimo (0.4 vs 0.3) per favorire il consenso reale.
+        let compatibility = 0.5 * mean + 0.4 * min - 0.1 * variance;
+        // Protezione da veto: se anche un solo membro odierebbe il film, penalità drastica.
+        // Soglie: < 0.10 = veto categorico (-75%), < 0.20 = forte avversione (-45%).
+        if (min < 0.10) {
+            compatibility *= 0.25;
+        }
+        else if (min < 0.20) {
+            compatibility *= 0.55;
+        }
+        result.set(candidates[i].movieId, clamp(compatibility, 0, 1));
     }
     return result;
 }

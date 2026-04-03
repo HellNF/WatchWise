@@ -25,14 +25,13 @@ async function fetchSuggestedForTopK(topK, region, limitPerType = 10) {
 const repository_1 = require("../../data/watch-history/repository");
 const repository_2 = require("../../data/lists/repository");
 const repository_3 = require("../../data/preferences/repository");
-const mongodb_1 = require("mongodb");
 async function buildGroupCandidatePool(memberIds, region, limit, excludeDays = 200, preferences) {
     const memberData = await Promise.all(memberIds.map(async (memberId) => {
         const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
-            (0, repository_1.getRecentlyWatchedMovies)(new mongodb_1.ObjectId(memberId), excludeDays),
+            (0, repository_1.getRecentlyWatchedMovies)(memberId, excludeDays),
             (0, repository_1.getWatchHistoryEntries)(memberId, 20),
             (0, repository_2.getListItemsBySlug)(memberId, "watching-list"),
-            (0, repository_3.getUserPreferenceEvents)(new mongodb_1.ObjectId(memberId), 300)
+            (0, repository_3.getUserPreferenceEvents)(memberId, 300)
         ]);
         return { watched, history, watchlistItems, feedbackEvents };
     }));

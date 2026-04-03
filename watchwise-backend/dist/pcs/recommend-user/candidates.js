@@ -5,14 +5,13 @@ const tmdb_1 = require("../../adapters/tmdb");
 const repository_1 = require("../../data/watch-history/repository");
 const repository_2 = require("../../data/lists/repository");
 const repository_3 = require("../../data/preferences/repository");
-const mongodb_1 = require("mongodb");
 async function buildCandidatePool(userId, region, limit, excludeDays = 200, // 200 giorni: evita re-recommend
 preferences) {
     const [watched, history, watchlistItems, feedbackEvents] = await Promise.all([
-        (0, repository_1.getRecentlyWatchedMovies)(new mongodb_1.ObjectId(userId), excludeDays),
+        (0, repository_1.getRecentlyWatchedMovies)(userId, excludeDays),
         (0, repository_1.getWatchHistoryEntries)(userId, 20),
         (0, repository_2.getListItemsBySlug)(userId, "watching-list"),
-        (0, repository_3.getUserPreferenceEvents)(new mongodb_1.ObjectId(userId), 300)
+        (0, repository_3.getUserPreferenceEvents)(userId, 300)
     ]);
     const watchedSet = new Set(watched.map(normalizeMovieId));
     const watchlistSet = new Set(watchlistItems.map((item) => normalizeMovieId(item.movieId)));

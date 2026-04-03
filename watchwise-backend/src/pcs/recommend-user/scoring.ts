@@ -23,7 +23,7 @@ export function scoreMovies(
     let score = 0;
     const reasons: string[] = [];
 
-    score += normalize(movie.popularity, 0, 500)* PCS_CONFIG.weights.popularity;
+    score += normalizeLog(movie.popularity, 500) * PCS_CONFIG.weights.popularity;
 
     score += normalize(movie.voteAverage, 0, 10)* PCS_CONFIG.weights.rating;
 
@@ -78,12 +78,21 @@ export function scoreMovies(
 
     return {
       movie,
-      score,
+      score: Math.max(0, Math.min(1, score)),
       reasons: Array.from(new Set(reasons)).slice(0, 3)
-    };  
+    };
   });
 }
 
 function normalize(value: number, min: number, max: number): number {
   return (value - min) / (max - min);
+}
+
+/**
+ * Normalizzazione logaritmica per valori con distribuzione log-normale (es. popolarità TMDB).
+ * La scala lineare comprimerebbe la maggior parte dei film vicino allo 0;
+ * la scala log distribuisce il segnale in modo proporzionale alla reale differenza percepita.
+ */
+function normalizeLog(value: number, max: number): number {
+  return Math.log(1 + Math.min(value, max)) / Math.log(1 + max);
 }

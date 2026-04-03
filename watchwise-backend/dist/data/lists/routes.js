@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listRoutes = listRoutes;
-const mongodb_1 = require("mongodb");
 const auth_1 = require("../../middleware/auth");
 const errors_1 = require("../../common/errors");
 const repository_1 = require("./repository");
@@ -9,7 +8,7 @@ async function listRoutes(app) {
     app.get("/api/lists", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const lists = await (0, repository_1.getUserLists)(req.userId);
         return lists.map((list) => ({
-            id: list._id.toString(),
+            id: list.id,
             name: list.name,
             slug: list.slug,
             isDefault: list.isDefault
@@ -24,7 +23,7 @@ async function listRoutes(app) {
         await (0, repository_1.ensureDefaultLists)(req.userId);
         const list = await (0, repository_1.createUserList)(req.userId, name);
         return {
-            id: list._id.toString(),
+            id: list.id,
             name: list.name,
             slug: list.slug,
             isDefault: list.isDefault
@@ -32,9 +31,6 @@ async function listRoutes(app) {
     });
     app.get("/api/lists/:listId/items", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { listId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(listId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid list id");
-        }
         const list = await (0, repository_1.getUserListById)(req.userId, listId);
         if (!list) {
             throw new errors_1.AppError("NOT_FOUND", 404, "List not found");
@@ -45,9 +41,6 @@ async function listRoutes(app) {
         const { listId } = req.params;
         const body = req.body;
         const movieId = String(body?.movieId ?? "").trim();
-        if (!mongodb_1.ObjectId.isValid(listId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid list id");
-        }
         if (!movieId) {
             throw new errors_1.AppError("INVALID_INPUT", 400, "Missing movieId");
         }
@@ -60,9 +53,6 @@ async function listRoutes(app) {
     });
     app.delete("/api/lists/:listId/items/:movieId", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { listId, movieId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(listId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid list id");
-        }
         const list = await (0, repository_1.getUserListById)(req.userId, listId);
         if (!list) {
             throw new errors_1.AppError("NOT_FOUND", 404, "List not found");
@@ -72,9 +62,6 @@ async function listRoutes(app) {
     });
     app.delete("/api/lists/:listId", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { listId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(listId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid list id");
-        }
         const list = await (0, repository_1.getUserListById)(req.userId, listId);
         if (!list) {
             throw new errors_1.AppError("NOT_FOUND", 404, "List not found");

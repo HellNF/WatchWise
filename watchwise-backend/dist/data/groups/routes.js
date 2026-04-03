@@ -1,24 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.groupRoutes = groupRoutes;
-const mongodb_1 = require("mongodb");
 const auth_1 = require("../../middleware/auth");
 const errors_1 = require("../../common/errors");
 const repository_1 = require("./repository");
 const JOIN_CODE_LENGTH = 8;
 const JOIN_CODE_TTL_MINUTES = 60;
+function serializeGroup(group) {
+    if (!group)
+        return null;
+    return {
+        id: group.id,
+        name: group.name,
+        members: group.members,
+        hostId: group.hostId,
+        joinCode: group.joinCode,
+        joinCodeExpiresAt: group.joinCodeExpiresAt,
+        status: group.status
+    };
+}
 async function groupRoutes(app) {
     app.get("/api/groups", { preHandler: [auth_1.requireAuth] }, async (req) => {
-        const groups = await (0, repository_1.findGroupsByMember)(new mongodb_1.ObjectId(req.userId));
-        return groups.map((group) => ({
-            id: group._id.toString(),
-            name: group.name,
-            members: group.members.map((m) => m.toString()),
-            hostId: group.hostId?.toString(),
-            joinCode: group.joinCode,
-            joinCodeExpiresAt: group.joinCodeExpiresAt,
-            status: group.status
-        }));
+        const groups = await (0, repository_1.findGroupsByMember)(req.userId);
+        return groups.map(serializeGroup);
     });
     app.post("/api/groups", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const body = req.body;
@@ -29,49 +33,31 @@ async function groupRoutes(app) {
         if (!name) {
             throw new errors_1.AppError("INVALID_INPUT", 400, "Missing group name");
         }
-        const hostId = new mongodb_1.ObjectId(req.userId);
-        const members = Array.from(new Set([hostId.toString(), ...memberIds])).map((id) => new mongodb_1.ObjectId(id));
         const { code, expiresAt } = generateJoinCode();
         const group = await (0, repository_1.createGroup)({
             name,
-            members,
-            hostId,
+            hostId: req.userId,
             joinCode: code,
             joinCodeExpiresAt: expiresAt,
             status: "open"
         });
-        return {
-            id: group._id.toString(),
-            name: group.name,
-            members: group.members.map((m) => m.toString()),
-            hostId: group.hostId?.toString(),
-            joinCode: group.joinCode,
-            joinCodeExpiresAt: group.joinCodeExpiresAt,
-            status: group.status
-        };
+        const allMemberIds = Array.from(new Set([req.userId, ...memberIds]));
+        for (const memberId of allMemberIds) {
+            await (0, repository_1.addGroupMember)(group.id, memberId);
+        }
+        const fullGroup = await (0, repository_1.findGroupById)(group.id);
+        return serializeGroup(fullGroup);
     });
     app.get("/api/groups/:groupId", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.toString() === req.userId);
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
-        return {
-            id: group._id.toString(),
-            name: group.name,
-            members: group.members.map((m) => m.toString()),
-            hostId: group.hostId?.toString(),
-            joinCode: group.joinCode,
-            joinCodeExpiresAt: group.joinCodeExpiresAt,
-            status: group.status
-        };
+        return serializeGroup(group);
     });
     app.post("/api/groups/join", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const body = req.body;
@@ -89,49 +75,39 @@ async function groupRoutes(app) {
         if (group.joinCodeExpiresAt && group.joinCodeExpiresAt < new Date()) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "Join code expired");
         }
-        await (0, repository_1.addGroupMember)(group._id, new mongodb_1.ObjectId(req.userId));
+        await (0, repository_1.addGroupMember)(group.id, req.userId);
         return {
             ok: true,
-            groupId: group._id.toString()
+            groupId: group.id
         };
     });
     app.delete("/api/groups/:groupId/members/me", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const groupObjectId = new mongodb_1.ObjectId(groupId);
-        const userObjectId = new mongodb_1.ObjectId(req.userId);
-        const group = await (0, repository_1.findGroupById)(groupObjectId);
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        const isMember = group.members.some((memberId) => memberId.equals(userObjectId));
-        if (!isMember) {
+        if (!group.members.includes(req.userId)) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "User is not a group member");
         }
-        const remainingMembers = group.members.filter((memberId) => !memberId.equals(userObjectId));
-        await (0, repository_1.removeGroupMember)(group._id, userObjectId);
-        if (group.hostId?.equals(userObjectId)) {
-            const newHostId = remainingMembers[0];
-            await (0, repository_1.setGroupHost)(group._id, newHostId);
+        const remainingMembers = group.members.filter((id) => id !== req.userId);
+        await (0, repository_1.removeGroupMember)(group.id, req.userId);
+        if (group.hostId === req.userId) {
+            await (0, repository_1.setGroupHost)(group.id, remainingMembers[0]);
         }
         return { ok: true };
     });
     app.post("/api/groups/:groupId/join-code", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        if (group.hostId?.toString() !== req.userId) {
+        if (group.hostId !== req.userId) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "Only host can regenerate code");
         }
         const { code, expiresAt } = generateJoinCode();
-        await (0, repository_1.updateGroupJoinCode)(group._id, code, expiresAt);
+        await (0, repository_1.updateGroupJoinCode)(group.id, code, expiresAt);
         return {
             joinCode: code,
             joinCodeExpiresAt: expiresAt
@@ -139,32 +115,26 @@ async function groupRoutes(app) {
     });
     app.post("/api/groups/:groupId/lock", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        if (group.hostId?.toString() !== req.userId) {
+        if (group.hostId !== req.userId) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "Only host can lock group");
         }
-        await (0, repository_1.updateGroupStatus)(group._id, "locked");
+        await (0, repository_1.updateGroupStatus)(group.id, "locked");
         return { ok: true };
     });
     app.post("/api/groups/:groupId/unlock", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const { groupId } = req.params;
-        if (!mongodb_1.ObjectId.isValid(groupId)) {
-            throw new errors_1.AppError("INVALID_INPUT", 400, "Invalid group id");
-        }
-        const group = await (0, repository_1.findGroupById)(new mongodb_1.ObjectId(groupId));
+        const group = await (0, repository_1.findGroupById)(groupId);
         if (!group) {
             throw new errors_1.AppError("NOT_FOUND", 404, "Group not found");
         }
-        if (group.hostId?.toString() !== req.userId) {
+        if (group.hostId !== req.userId) {
             throw new errors_1.AppError("UNAUTHORIZED", 403, "Only host can unlock group");
         }
-        await (0, repository_1.updateGroupStatus)(group._id, "open");
+        await (0, repository_1.updateGroupStatus)(group.id, "open");
         return { ok: true };
     });
 }

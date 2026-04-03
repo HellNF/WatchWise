@@ -15,7 +15,7 @@ async function watchHistoryRoutes(app) {
     app.get("/api/watch-history", { preHandler: [auth_1.requireAuth] }, async (req) => {
         const rows = await (0, repository_1.getWatchHistory)(req.userId);
         return rows.map((row) => ({
-            id: row._id.toString(),
+            id: row.id,
             movieId: row.movieId,
             watchedAt: row.watchedAt,
             rating: row.rating,

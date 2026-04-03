@@ -8,66 +8,89 @@ exports.getLatestQuestionnaireEvent = getLatestQuestionnaireEvent;
 exports.deletePreferenceEvent = deletePreferenceEvent;
 exports.deleteRecentPreferencesBySource = deleteRecentPreferencesBySource;
 exports.deletePreferencesBySource = deletePreferencesBySource;
-const mongodb_1 = require("mongodb");
-const mongodb_2 = require("../../config/mongodb");
-const COLLECTION = "user_preference_events";
-function collection() {
-    return (0, mongodb_2.getDb)().collection(COLLECTION);
+// watchwise-backend/src/data/preferences/repository.ts
+const drizzle_orm_1 = require("drizzle-orm");
+const db_1 = require("../../db");
+const schema_1 = require("../../db/schema");
+function toEvent(row) {
+    return {
+        id: row.id,
+        userId: row.userId,
+        type: row.type,
+        value: row.value,
+        weight: row.weight,
+        source: row.source,
+        createdAt: row.createdAt,
+    };
 }
 async function insertPreferenceEvent(event) {
-    const document = {
-        _id: new mongodb_1.ObjectId(),
-        ...event,
-        userId: new mongodb_1.ObjectId(event.userId)
-    };
-    await collection().insertOne(document);
+    const db = (0, db_1.getDb)();
+    await db.insert(schema_1.userPreferenceEvents).values({
+        userId: event.userId,
+        type: event.type,
+        value: event.value,
+        weight: event.weight,
+        source: event.source,
+        createdAt: event.createdAt ?? new Date(),
+    });
 }
 async function insertPreferenceEvents(userId, events) {
     if (!events.length)
         return;
-    const documents = events.map((event) => ({
-        _id: new mongodb_1.ObjectId(),
-        ...event,
-        userId: new mongodb_1.ObjectId(userId)
-    }));
-    await collection().insertMany(documents);
+    const db = (0, db_1.getDb)();
+    await db.insert(schema_1.userPreferenceEvents).values(events.map((e) => ({
+        userId,
+        type: e.type,
+        value: e.value,
+        weight: e.weight,
+        source: e.source,
+        createdAt: e.createdAt ?? new Date(),
+    })));
 }
 async function getUserPreferences(userId) {
-    return collection()
-        .find({ userId: new mongodb_1.ObjectId(userId) })
-        .sort({ createdAt: -1 })
-        .toArray();
+    const db = (0, db_1.getDb)();
+    const rows = await db
+        .select()
+        .from(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId))
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.userPreferenceEvents.createdAt));
+    return rows.map(toEvent);
 }
 async function getUserPreferenceEvents(userId, limit = 300) {
-    return collection()
-        .find({ userId })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .toArray();
+    const db = (0, db_1.getDb)();
+    const rows = await db
+        .select()
+        .from(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId))
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.userPreferenceEvents.createdAt))
+        .limit(limit);
+    return rows.map(toEvent);
 }
 async function getLatestQuestionnaireEvent(userId) {
-    return collection()
-        .find({ userId, source: "questionnaire" })
-        .sort({ createdAt: -1 })
-        .limit(1)
-        .next();
+    const db = (0, db_1.getDb)();
+    const rows = await db
+        .select()
+        .from(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.source, "questionnaire")))
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.userPreferenceEvents.createdAt))
+        .limit(1);
+    return rows[0] ? toEvent(rows[0]) : null;
 }
 async function deletePreferenceEvent(userId, eventId) {
-    await collection().deleteOne({
-        _id: new mongodb_1.ObjectId(eventId),
-        userId: new mongodb_1.ObjectId(userId)
-    });
+    const db = (0, db_1.getDb)();
+    await db
+        .delete(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.id, eventId), (0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId)));
 }
 async function deleteRecentPreferencesBySource(userId, source, since) {
-    await collection().deleteMany({
-        userId: new mongodb_1.ObjectId(userId),
-        source,
-        createdAt: { $gte: since }
-    });
+    const db = (0, db_1.getDb)();
+    await db
+        .delete(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.source, source), (0, drizzle_orm_1.gte)(schema_1.userPreferenceEvents.createdAt, since)));
 }
 async function deletePreferencesBySource(userId, source) {
-    await collection().deleteMany({
-        userId: new mongodb_1.ObjectId(userId),
-        source
-    });
+    const db = (0, db_1.getDb)();
+    await db
+        .delete(schema_1.userPreferenceEvents)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userPreferenceEvents.source, source)));
 }

@@ -81,10 +81,26 @@ export async function recommendForGroup(
   });
 
   const scored = scoreMovies(filteredCandidates, mergedContext, preferences).map((entry) => {
+    let s = entry.score;
+
+    // Jitter: rumore calibrato per non sopraffare i segnali di rating/popularity
     const jitter = PCS_CONFIG.exploration.jitter ?? 0;
-    if (!jitter) return entry;
-    const noise = (Math.random() * 2 - 1) * jitter;
-    return { ...entry, score: entry.score + noise };
+    if (jitter) {
+      s += (Math.random() * 2 - 1) * jitter;
+    }
+
+    // Watchlist bonus: un film che i membri hanno già detto di voler vedere
+    // merita di emergere nel ranking rispetto a candidati generici.
+    if (outsiderIds.has(entry.movie.movieId)) {
+      s += PCS_CONFIG.group.watchlistBonus;
+      return {
+        ...entry,
+        score: Math.min(1, s),
+        reasons: [...entry.reasons, "In your group's watchlist"].slice(0, 3)
+      };
+    }
+
+    return { ...entry, score: Math.min(1, s) };
   });
 
   const ranked = scored.sort((a, b) => b.score - a.score);
@@ -189,9 +205,19 @@ async function computeCompatibilityScores(
     const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
     const min = Math.min(...values);
     const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-    const compatibility = clamp(0.6 * mean + 0.3 * min - 0.1 * variance, 0, 1);
-    const movieId = candidates[i].movieId;
-    result.set(movieId, compatibility);
+
+    // Formula aggiornata: più peso al minimo (0.4 vs 0.3) per favorire il consenso reale.
+    let compatibility = 0.5 * mean + 0.4 * min - 0.1 * variance;
+
+    // Protezione da veto: se anche un solo membro odierebbe il film, penalità drastica.
+    // Soglie: < 0.10 = veto categorico (-75%), < 0.20 = forte avversione (-45%).
+    if (min < 0.10) {
+      compatibility *= 0.25;
+    } else if (min < 0.20) {
+      compatibility *= 0.55;
+    }
+
+    result.set(candidates[i].movieId, clamp(compatibility, 0, 1));
   }
 
   return result;

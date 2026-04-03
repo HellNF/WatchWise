@@ -10,23 +10,14 @@ exports.getListItemsBySlug = getListItemsBySlug;
 exports.addListItem = addListItem;
 exports.removeListItem = removeListItem;
 exports.deleteUserList = deleteUserList;
-const mongodb_1 = require("mongodb");
-const mongodb_2 = require("../../config/mongodb");
-const LISTS_COLLECTION = "user_lists";
-const ITEMS_COLLECTION = "user_list_items";
+// watchwise-backend/src/data/lists/repository.ts
+const drizzle_orm_1 = require("drizzle-orm");
+const db_1 = require("../../db");
+const schema_1 = require("../../db/schema");
 const DEFAULT_LISTS = [
     { name: "watching list", slug: "watching-list" },
-    { name: "favourites", slug: "favourites" }
+    { name: "favourites", slug: "favourites" },
 ];
-function listsCollection() {
-    return (0, mongodb_2.getDb)().collection(LISTS_COLLECTION);
-}
-function itemsCollection() {
-    return (0, mongodb_2.getDb)().collection(ITEMS_COLLECTION);
-}
-function toObjectId(id) {
-    return new mongodb_1.ObjectId(id);
-}
 function slugify(value) {
     return value
         .toLowerCase()
@@ -37,105 +28,109 @@ function slugify(value) {
         .replace(/^-|-$/g, "");
 }
 async function ensureDefaultLists(userId) {
-    const userObjectId = toObjectId(userId);
+    const db = (0, db_1.getDb)();
     const now = new Date();
-    await Promise.all(DEFAULT_LISTS.map((list) => listsCollection().updateOne({ userId: userObjectId, slug: list.slug }, {
-        $setOnInsert: {
-            _id: new mongodb_1.ObjectId(),
-            userId: userObjectId,
-            name: list.name,
-            slug: list.slug,
-            isDefault: true,
-            createdAt: now,
-            updatedAt: now
+    for (const list of DEFAULT_LISTS) {
+        const existing = await db
+            .select()
+            .from(schema_1.userLists)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userLists.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userLists.slug, list.slug)))
+            .limit(1);
+        if (!existing.length) {
+            await db.insert(schema_1.userLists).values({
+                userId,
+                name: list.name,
+                slug: list.slug,
+                isDefault: true,
+                createdAt: now,
+                updatedAt: now,
+            });
         }
-    }, { upsert: true })));
+    }
 }
 async function getUserLists(userId) {
     await ensureDefaultLists(userId);
-    return listsCollection()
-        .find({ userId: toObjectId(userId) })
-        .sort({ isDefault: -1, name: 1 })
-        .toArray();
+    const db = (0, db_1.getDb)();
+    return db
+        .select()
+        .from(schema_1.userLists)
+        .where((0, drizzle_orm_1.eq)(schema_1.userLists.userId, userId))
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.userLists.isDefault), (0, drizzle_orm_1.asc)(schema_1.userLists.name));
 }
 async function createUserList(userId, name) {
     const slug = slugify(name);
-    if (!slug) {
+    if (!slug)
         throw new Error("Invalid list name");
-    }
+    const db = (0, db_1.getDb)();
     const now = new Date();
-    const document = {
-        _id: new mongodb_1.ObjectId(),
-        userId: toObjectId(userId),
-        name,
-        slug,
-        isDefault: false,
-        createdAt: now,
-        updatedAt: now
-    };
-    await listsCollection().insertOne(document);
-    return document;
+    const rows = await db
+        .insert(schema_1.userLists)
+        .values({ userId, name, slug, isDefault: false, createdAt: now, updatedAt: now })
+        .returning();
+    return rows[0];
 }
 async function getUserListById(userId, listId) {
-    return listsCollection().findOne({
-        _id: toObjectId(listId),
-        userId: toObjectId(userId)
-    });
+    const db = (0, db_1.getDb)();
+    const rows = await db
+        .select()
+        .from(schema_1.userLists)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userLists.id, listId), (0, drizzle_orm_1.eq)(schema_1.userLists.userId, userId)))
+        .limit(1);
+    return rows[0] ?? null;
 }
 async function getUserListBySlug(userId, slug) {
     await ensureDefaultLists(userId);
-    return listsCollection().findOne({
-        userId: toObjectId(userId),
-        slug
-    });
+    const db = (0, db_1.getDb)();
+    const rows = await db
+        .select()
+        .from(schema_1.userLists)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userLists.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userLists.slug, slug)))
+        .limit(1);
+    return rows[0] ?? null;
 }
 async function getListItems(userId, listId) {
-    return itemsCollection()
-        .find({
-        userId: toObjectId(userId),
-        listId: toObjectId(listId)
-    })
-        .sort({ addedAt: -1 })
-        .toArray();
+    const db = (0, db_1.getDb)();
+    return db
+        .select()
+        .from(schema_1.userListItems)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userListItems.listId, listId), (0, drizzle_orm_1.eq)(schema_1.userListItems.userId, userId)))
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.userListItems.addedAt));
 }
 async function getListItemsBySlug(userId, slug) {
     const list = await getUserListBySlug(userId, slug);
     if (!list)
         return [];
-    return getListItems(userId, list._id.toString());
+    return getListItems(userId, list.id);
 }
 async function addListItem(userId, listId, movieId) {
-    const now = new Date();
-    const result = await itemsCollection().updateOne({
-        userId: toObjectId(userId),
-        listId: toObjectId(listId),
-        movieId
-    }, {
-        $setOnInsert: {
-            _id: new mongodb_1.ObjectId(),
-            userId: toObjectId(userId),
-            listId: toObjectId(listId),
-            movieId,
-            addedAt: now
-        }
-    }, { upsert: true });
-    return { created: Boolean(result.upsertedId) };
+    const db = (0, db_1.getDb)();
+    const existing = await db
+        .select()
+        .from(schema_1.userListItems)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userListItems.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userListItems.listId, listId), (0, drizzle_orm_1.eq)(schema_1.userListItems.movieId, movieId)))
+        .limit(1);
+    if (existing.length)
+        return { created: false };
+    await db.insert(schema_1.userListItems).values({
+        userId,
+        listId,
+        movieId,
+        addedAt: new Date(),
+    });
+    return { created: true };
 }
 async function removeListItem(userId, listId, movieId) {
-    await itemsCollection().deleteOne({
-        userId: toObjectId(userId),
-        listId: toObjectId(listId),
-        movieId
-    });
+    const db = (0, db_1.getDb)();
+    await db
+        .delete(schema_1.userListItems)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userListItems.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userListItems.listId, listId), (0, drizzle_orm_1.eq)(schema_1.userListItems.movieId, movieId)));
 }
 async function deleteUserList(userId, listId) {
-    await itemsCollection().deleteMany({
-        userId: toObjectId(userId),
-        listId: toObjectId(listId)
-    });
-    await listsCollection().deleteOne({
-        _id: toObjectId(listId),
-        userId: toObjectId(userId),
-        isDefault: { $ne: true }
-    });
+    const db = (0, db_1.getDb)();
+    await db
+        .delete(schema_1.userListItems)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userListItems.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userListItems.listId, listId)));
+    await db
+        .delete(schema_1.userLists)
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.userLists.id, listId), (0, drizzle_orm_1.eq)(schema_1.userLists.userId, userId), (0, drizzle_orm_1.eq)(schema_1.userLists.isDefault, false)));
 }
