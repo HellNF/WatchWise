@@ -847,6 +847,7 @@ export default function ProfilePage() {
                               const parsed = JSON.parse(raw)
                               parsed.avatar = option.id
                               localStorage.setItem("watchwise-user", JSON.stringify(parsed))
+                              window.dispatchEvent(new Event("watchwise-auth-changed"))
                             }
                           } catch {}
                         }

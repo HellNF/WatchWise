@@ -195,7 +195,7 @@ function LoginPageInner() {
       </div>
 
       <div className="absolute bottom-6 text-center w-full text-[10px] text-zinc-700 pointer-events-none">
-        &copy; 2024 WatchWise Inc. All rights reserved.
+        &copy; 2026 WatchWise Inc. All rights reserved.
       </div>
     </main>
   )

@@ -105,9 +105,9 @@ export function Header() {
           </div>
 
           <div className="relative group">
-            <Link  href="/tv" className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors disabled:opacity-50">
+            <span className="text-sm font-medium text-foreground/40 cursor-not-allowed select-none">
               TV Series
-            </Link>
+            </span>
             <div className="absolute left-0 top-full pt-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition">
               <div className="min-w-[200px] rounded-md border border-border/60 bg-background/95 backdrop-blur shadow-lg p-2">
                 {/*

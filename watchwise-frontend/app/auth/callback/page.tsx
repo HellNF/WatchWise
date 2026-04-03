@@ -53,46 +53,52 @@ function AuthCallbackPageInner() {
 
     const supabase = getSupabaseClient()
 
-    supabase.auth.exchangeCodeForSession(code).then(async ({ data, error: exchangeError }) => {
-      if (exchangeError || !data.session) {
-        setStatus("error")
-        setDetails(exchangeError?.message ?? "Failed to complete authentication.")
-        return
-      }
-
-      const { access_token, user: supabaseUser } = data.session
-
-      try {
-        const user = await upsertUserSession(access_token)
-        storeSession({ token: access_token, user })
-      } catch (err) {
-        console.error("[Auth] Backend session upsert failed:", err)
-        // Fallback: store basic info from the Supabase JWT so the header
-        // can show the user avatar/username even if the backend is unreachable.
-        const fallbackUser = {
-          id: supabaseUser.id,
-          username:
-            supabaseUser.user_metadata?.full_name ??
-            supabaseUser.user_metadata?.name ??
-            supabaseUser.email?.split("@")[0] ??
-            "User",
-          avatar: "",
-          email: supabaseUser.email,
+    supabase.auth.exchangeCodeForSession(code)
+      .then(async ({ data, error: exchangeError }) => {
+        if (exchangeError || !data.session) {
+          setStatus("error")
+          setDetails(exchangeError?.message ?? "Failed to complete authentication.")
+          return
         }
-        storeSession({ token: access_token, user: fallbackUser })
-      }
 
-      clearAuthRedirect()
-      setStatus("success")
-      setDetails("Successfully authenticated. Redirecting you shortly...")
+        const { access_token, user: supabaseUser } = data.session
 
-      // Full page reload so that the Header (persistent layout) remounts and
-      // reads the freshly-written localStorage. router.replace() is soft-nav
-      // and would leave the Header in a stale "not logged in" state.
-      setTimeout(() => {
-        window.location.href = dest
-      }, 1500)
-    })
+        try {
+          const user = await upsertUserSession(access_token)
+          storeSession({ token: access_token, user })
+        } catch (err) {
+          console.error("[Auth] Backend session upsert failed:", err)
+          // Fallback: store basic info from the Supabase JWT so the header
+          // can show the user avatar/username even if the backend is unreachable.
+          const fallbackUser = {
+            id: supabaseUser.id,
+            username:
+              supabaseUser.user_metadata?.full_name ??
+              supabaseUser.user_metadata?.name ??
+              supabaseUser.email?.split("@")[0] ??
+              "User",
+            avatar: "",
+            email: supabaseUser.email,
+          }
+          storeSession({ token: access_token, user: fallbackUser })
+        }
+
+        clearAuthRedirect()
+        setStatus("success")
+        setDetails("Successfully authenticated. Redirecting you shortly...")
+
+        // Full page reload so that the Header (persistent layout) remounts and
+        // reads the freshly-written localStorage. router.replace() is soft-nav
+        // and would leave the Header in a stale "not logged in" state.
+        setTimeout(() => {
+          window.location.href = dest
+        }, 1500)
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Unknown authentication error"
+        setStatus("error")
+        setDetails(msg)
+      })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
