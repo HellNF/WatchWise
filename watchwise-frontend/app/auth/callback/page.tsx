@@ -10,7 +10,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getSupabaseClient, storeSession, getAuthRedirect, clearAuthRedirect } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "")
+// NEXT_PUBLIC_API_BASE_URL may already include "/api" (e.g. "http://localhost:3001/api").
+// Strip it so we can always build the full path ourselves.
+const _rawBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "")
+const API_BASE = _rawBase.endsWith("/api") ? _rawBase.slice(0, -4) : _rawBase
 
 async function upsertUserSession(accessToken: string) {
   const res = await fetch(`${API_BASE}/api/auth/session`, {
@@ -44,20 +47,16 @@ function AuthCallbackPageInner() {
       return
     }
 
-    const code = searchParams.get("code")
-    if (!code) {
-      setStatus("error")
-      setDetails("Missing authorization code from provider.")
-      return
-    }
-
     const supabase = getSupabaseClient()
 
-    supabase.auth.exchangeCodeForSession(code)
-      .then(async ({ data, error: exchangeError }) => {
-        if (exchangeError || !data.session) {
+    // Supabase (detectSessionInUrl: true) exchanges the code automatically on
+    // client init and removes ?code= from the URL via history.replaceState.
+    // We just wait for that to settle, then read the resulting session.
+    supabase.auth.getSession()
+      .then(async ({ data, error: sessionError }) => {
+        if (sessionError || !data.session) {
           setStatus("error")
-          setDetails(exchangeError?.message ?? "Failed to complete authentication.")
+          setDetails(sessionError?.message ?? "Failed to complete authentication.")
           return
         }
 

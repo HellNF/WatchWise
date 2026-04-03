@@ -16,9 +16,7 @@ export function getSupabaseClient() {
   if (_supabase) return _supabase
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
-  _supabase = createClient(url, key, {
-    auth: { detectSessionInUrl: false },
-  })
+  _supabase = createClient(url, key)
   return _supabase
 }
 

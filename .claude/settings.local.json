@@ -8,7 +8,10 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "Bash(npx drizzle-kit:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "mcp__plugin_supabase_supabase__get_advisors"
     ]
   }
 }

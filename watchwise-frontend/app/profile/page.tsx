@@ -837,22 +837,18 @@ export default function ProfilePage() {
                         avatar: option.id,
                         username: profile?.username || undefined,
                       })
-                      setProfile((prev) => {
-                        const updated = prev ? { ...prev, avatar: option.id } : prev
-                        // Update localStorage user data as well
-                        if (updated) {
-                          try {
-                            const raw = localStorage.getItem("watchwise-user")
-                            if (raw) {
-                              const parsed = JSON.parse(raw)
-                              parsed.avatar = option.id
-                              localStorage.setItem("watchwise-user", JSON.stringify(parsed))
-                              window.dispatchEvent(new Event("watchwise-auth-changed"))
-                            }
-                          } catch {}
+                      // Side effects (localStorage, events) must run outside the
+                      // setState updater to avoid updating Header during render.
+                      try {
+                        const raw = localStorage.getItem("watchwise-user")
+                        if (raw) {
+                          const parsed = JSON.parse(raw)
+                          parsed.avatar = option.id
+                          localStorage.setItem("watchwise-user", JSON.stringify(parsed))
                         }
-                        return updated
-                      })
+                      } catch {}
+                      setProfile((prev) => prev ? { ...prev, avatar: option.id } : prev)
+                      window.dispatchEvent(new Event("watchwise-auth-changed"))
                       toast.success("Avatar updated")
                       setAvatarPickerOpen(false)
                     } catch {

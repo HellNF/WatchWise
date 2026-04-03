@@ -12,7 +12,8 @@ export function getDb() {
     throw new Error("Missing DATABASE_URL environment variable");
   }
 
-  const client = postgres(connectionString);
+  // Transaction pooler (port 6543) does not support prepared statements.
+  const client = postgres(connectionString, { prepare: false });
   _db = drizzle(client, { schema });
   return _db;
 }
