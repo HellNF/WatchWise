@@ -16,6 +16,7 @@ export interface TMDBMovieListResponse {
 
 export interface TMDBDiscoverResponse {
   page: number;
+  total_pages: number;
   results: TMDBMovie[];
 }
 
