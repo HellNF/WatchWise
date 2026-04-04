@@ -640,3 +640,43 @@ export async function searchMovies(query: string, limit = 10) {
   const params = buildQuery({ q: query, limit })
   return requestJson<MovieListItem[]>(`/movies/search${params}`)
 }
+
+export type DiscoverParams = {
+  query?: string
+  genre_ids?: string        // comma-separated e.g. "28,12"
+  year_from?: number
+  year_to?: number
+  rating_min?: number
+  rating_max?: number
+  runtime_min?: number
+  runtime_max?: number
+  with_cast?: number
+  with_crew?: number
+  sort_by?: string
+  page?: number
+}
+
+export type DiscoverResult = {
+  results: MovieListItem[]
+  page: number
+  total_pages: number
+}
+
+export async function discoverMovies(params: DiscoverParams): Promise<DiscoverResult> {
+  const q = new URLSearchParams()
+  if (params.query)       q.set("query",       params.query)
+  if (params.genre_ids)   q.set("genre_ids",   params.genre_ids)
+  if (params.year_from)   q.set("year_from",   String(params.year_from))
+  if (params.year_to)     q.set("year_to",     String(params.year_to))
+  if (params.rating_min !== undefined) q.set("rating_min", String(params.rating_min))
+  if (params.rating_max !== undefined) q.set("rating_max", String(params.rating_max))
+  if (params.runtime_min !== undefined) q.set("runtime_min", String(params.runtime_min))
+  if (params.runtime_max !== undefined) q.set("runtime_max", String(params.runtime_max))
+  if (params.with_cast)   q.set("with_cast",   String(params.with_cast))
+  if (params.with_crew)   q.set("with_crew",   String(params.with_crew))
+  if (params.sort_by)     q.set("sort_by",     params.sort_by)
+  if (params.page)        q.set("page",        String(params.page))
+
+  const qs = q.toString()
+  return requestJson<DiscoverResult>(`/movies/discover${qs ? `?${qs}` : ""}`)
+}
