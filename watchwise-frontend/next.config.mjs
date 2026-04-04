@@ -32,7 +32,8 @@ const ContentSecurityPolicy = `
               wss://*.supabase.co
               https://api.themoviedb.org
               https://va.vercel-scripts.com;
-  frame-src   'none';
+  frame-src   https://www.youtube-nocookie.com
+              https://www.youtube.com;
   object-src  'none';
   base-uri    'self';
   form-action 'self';

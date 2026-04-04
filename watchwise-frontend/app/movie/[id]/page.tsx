@@ -578,7 +578,7 @@ export default function MovieDetailsPage() {
                             {video.site.toLowerCase() === "youtube" ? (
                               <div className="aspect-video relative">
                                 <iframe
-                                  src={`https://www.youtube.com/embed/${video.key}`}
+                                  src={`https://www.youtube-nocookie.com/embed/${video.key}`}
                                   title={video.name}
                                   className="absolute inset-0 h-full w-full"
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
