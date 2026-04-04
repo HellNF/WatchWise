@@ -311,3 +311,88 @@ export async function searchPeople(
   setCached(cacheKey, data.results);
   return data.results.slice(0, limit);
 }
+
+export interface DiscoverParams {
+  query?: string;
+  genre_ids?: string;        // comma-separated TMDB genre IDs e.g. "28,12"
+  year_from?: number;
+  year_to?: number;
+  rating_min?: number;
+  rating_max?: number;
+  runtime_min?: number;
+  runtime_max?: number;
+  with_cast?: number;        // TMDB person ID
+  with_crew?: number;        // TMDB person ID (director)
+  sort_by?: string;          // e.g. "popularity.desc"
+  page?: number;
+}
+
+export interface DiscoverResponse {
+  results: MovieCandidate[];
+  page: number;
+  total_pages: number;
+}
+
+export async function discoverMovies(
+  params: DiscoverParams
+): Promise<DiscoverResponse> {
+  const page = params.page ?? 1;
+  const sortBy = params.sort_by ?? "popularity.desc";
+
+  // If free-text query: use /search/movie (TMDB doesn't support text + discover)
+  if (params.query?.trim()) {
+    const cacheKey = `tmdb:search:movie:${params.query}:${page}`;
+    const cached = getCached(cacheKey) as DiscoverResponse | undefined;
+    if (cached) return cached;
+
+    const data = await tmdbFetch<TMDBDiscoverResponse>("/search/movie", {
+      query: params.query.trim(),
+      page,
+    });
+
+    const result: DiscoverResponse = {
+      results: data.results.map(mapTMDBMovieToCandidate),
+      page: data.page,
+      total_pages: data.total_pages ?? 1,
+    };
+    setCached(cacheKey, result);
+    return result;
+  }
+
+  // Otherwise: use /discover/movie with all filter params
+  const discoverParams: Record<string, string | number | undefined> = {
+    sort_by: sortBy,
+    page,
+    with_genres: params.genre_ids || undefined,
+    "primary_release_date.gte": params.year_from
+      ? `${params.year_from}-01-01`
+      : undefined,
+    "primary_release_date.lte": params.year_to
+      ? `${params.year_to}-12-31`
+      : undefined,
+    "vote_average.gte": params.rating_min,
+    "vote_average.lte": params.rating_max,
+    "with_runtime.gte": params.runtime_min,
+    "with_runtime.lte": params.runtime_max,
+    with_cast: params.with_cast,
+    with_crew: params.with_crew,
+    "vote_count.gte": 10,
+  };
+
+  const cacheKey = `tmdb:discover:${JSON.stringify(discoverParams)}`;
+  const cached = getCached(cacheKey) as DiscoverResponse | undefined;
+  if (cached) return cached;
+
+  const data = await tmdbFetch<TMDBDiscoverResponse>(
+    "/discover/movie",
+    discoverParams
+  );
+
+  const result: DiscoverResponse = {
+    results: data.results.map(mapTMDBMovieToCandidate),
+    page: data.page,
+    total_pages: data.total_pages ?? 1,
+  };
+  setCached(cacheKey, result);
+  return result;
+}
