@@ -9,6 +9,7 @@ import {
   TMDBPersonSearchResponse,
   TMDBMovieImagesResponse,
   TMDBMovieVideosResponse,
+  TMDBKeywordSearchResponse,
 } from "./types";
 import {
   mapTMDBMovieToCandidate,
@@ -323,6 +324,7 @@ export interface DiscoverParams {
   runtime_max?: number;
   with_cast?: number;        // TMDB person ID
   with_crew?: number;        // TMDB person ID (director)
+  with_keywords?: string;   // comma-separated TMDB keyword IDs e.g. "4379,10527"
   sort_by?: string;          // e.g. "popularity.desc"
   page?: number;
 }
@@ -376,6 +378,7 @@ export async function discoverMovies(
     "with_runtime.lte": params.runtime_max,
     with_cast: params.with_cast,
     with_crew: params.with_crew,
+    with_keywords: params.with_keywords || undefined,
     "vote_count.gte": 10,
   };
 
@@ -393,6 +396,20 @@ export async function discoverMovies(
     page: data.page,
     total_pages: data.total_pages ?? 1,
   };
+  setCached(cacheKey, result);
+  return result;
+}
+
+export async function searchKeywords(
+  query: string,
+  limit = 8
+): Promise<{ id: number; name: string }[]> {
+  const cacheKey = `tmdb:search:keyword:${query}:${limit}`;
+  const cached = getCached(cacheKey) as { id: number; name: string }[] | undefined;
+  if (cached) return cached;
+
+  const data = await tmdbFetch<TMDBKeywordSearchResponse>("/search/keyword", { query });
+  const result = data.results.slice(0, limit).map((k) => ({ id: k.id, name: k.name }));
   setCached(cacheKey, result);
   return result;
 }

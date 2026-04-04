@@ -38,7 +38,7 @@ function buildQuery(params?: Record<string, string | number | boolean | undefine
   return `?${searchParams.toString()}`
 }
 
-async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const apiRoot = getApiRoot()
   if (!apiRoot) {
     const error = new Error("Missing NEXT_PUBLIC_API_BASE_URL") as ApiError
@@ -652,6 +652,7 @@ export type DiscoverParams = {
   runtime_max?: number
   with_cast?: number
   with_crew?: number
+  with_keywords?: string   // comma-separated TMDB keyword IDs e.g. "4379,10527"
   sort_by?: string
   page?: number
 }
@@ -664,19 +665,27 @@ export type DiscoverResult = {
 
 export async function discoverMovies(params: DiscoverParams): Promise<DiscoverResult> {
   const q = new URLSearchParams()
-  if (params.query)       q.set("query",       params.query)
-  if (params.genre_ids)   q.set("genre_ids",   params.genre_ids)
-  if (params.year_from)   q.set("year_from",   String(params.year_from))
-  if (params.year_to)     q.set("year_to",     String(params.year_to))
+  if (params.query)        q.set("query",        params.query)
+  if (params.genre_ids)    q.set("genre_ids",    params.genre_ids)
+  if (params.year_from)    q.set("year_from",    String(params.year_from))
+  if (params.year_to)      q.set("year_to",      String(params.year_to))
   if (params.rating_min !== undefined) q.set("rating_min", String(params.rating_min))
   if (params.rating_max !== undefined) q.set("rating_max", String(params.rating_max))
   if (params.runtime_min !== undefined) q.set("runtime_min", String(params.runtime_min))
   if (params.runtime_max !== undefined) q.set("runtime_max", String(params.runtime_max))
-  if (params.with_cast)   q.set("with_cast",   String(params.with_cast))
-  if (params.with_crew)   q.set("with_crew",   String(params.with_crew))
-  if (params.sort_by)     q.set("sort_by",     params.sort_by)
-  if (params.page)        q.set("page",        String(params.page))
+  if (params.with_cast)    q.set("with_cast",    String(params.with_cast))
+  if (params.with_crew)    q.set("with_crew",    String(params.with_crew))
+  if (params.with_keywords) q.set("with_keywords", params.with_keywords)
+  if (params.sort_by)      q.set("sort_by",      params.sort_by)
+  if (params.page)         q.set("page",         String(params.page))
 
   const qs = q.toString()
   return requestJson<DiscoverResult>(`/movies/discover${qs ? `?${qs}` : ""}`)
+}
+
+export type TMDBKeyword = { id: number; name: string }
+
+export async function searchKeywords(query: string, limit = 8): Promise<TMDBKeyword[]> {
+  const qs = new URLSearchParams({ q: query, limit: String(limit) }).toString()
+  return requestJson<TMDBKeyword[]>(`/keywords/search?${qs}`)
 }

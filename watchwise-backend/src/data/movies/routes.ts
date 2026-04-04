@@ -19,6 +19,7 @@ import {
   fetchSimilarMovies,
   fetchRecommendedMovies,
   discoverMovies,
+  searchKeywords,
 } from "../../adapters/tmdb/service";
 
 export async function movieRoutes(app: FastifyInstance) {
@@ -136,9 +137,18 @@ export async function movieRoutes(app: FastifyInstance) {
       runtime_max: Number.isFinite(runtime_max) ? runtime_max : undefined,
       with_cast: Number.isFinite(with_cast) ? with_cast : undefined,
       with_crew: Number.isFinite(with_crew) ? with_crew : undefined,
+      with_keywords: q.with_keywords || undefined,
       sort_by: q.sort_by || "popularity.desc",
       page,
     });
+  });
+
+  app.get("/api/keywords/search", async (req, reply) => {
+    const { q, limit } = (req.query as any) ?? {};
+    const query = String(q ?? "").trim();
+    if (!query) return reply.code(400).send({ error: "Missing query" });
+    const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 8;
+    return searchKeywords(query, parsedLimit);
   });
 
   app.get("/api/movies/:id", async (req, reply) => {

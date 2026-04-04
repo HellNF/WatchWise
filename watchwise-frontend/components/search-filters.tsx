@@ -30,6 +30,8 @@ export type FilterValues = {
   actorName: string
   directorId: number | null
   directorName: string
+  keywordIds: number[]
+  keywordNames: string[]
 }
 
 export const DEFAULT_FILTERS: FilterValues = {
@@ -46,6 +48,8 @@ export const DEFAULT_FILTERS: FilterValues = {
   actorName: "",
   directorId: null,
   directorName: "",
+  keywordIds: [],
+  keywordNames: [],
 }
 
 type Props = {

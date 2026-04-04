@@ -130,5 +130,15 @@ export interface TMDBPersonSearchResponse {
   results: TMDBPersonSearchResult[];
 }
 
+export interface TMDBKeyword {
+  id: number;
+  name: string;
+}
+
+export interface TMDBKeywordSearchResponse {
+  page: number;
+  results: TMDBKeyword[];
+}
+
 
 
