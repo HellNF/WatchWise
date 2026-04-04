@@ -11,7 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
-import { getMoviesByCategory, type MovieListItem } from "@/lib/api"
+import { requestJson, type MovieListItem } from "@/lib/api"
 
 type Section = { title: string; icon: React.ReactNode; movies: MovieListItem[] }
 
@@ -21,9 +21,9 @@ export function SearchEmptyState() {
   useEffect(() => {
     async function load() {
       const [trending, upcoming, topRated] = await Promise.allSettled([
-        getMoviesByCategory("trending", { limit: 12 }),
-        getMoviesByCategory("upcoming", { limit: 12 }),
-        getMoviesByCategory("top_rated", { limit: 12 }),
+        requestJson<MovieListItem[]>("/movies/trending?limit=12"),
+        requestJson<MovieListItem[]>("/movies/upcoming?limit=12"),
+        requestJson<MovieListItem[]>("/movies/top-rated?limit=12"),
       ])
 
       const built: Section[] = []
