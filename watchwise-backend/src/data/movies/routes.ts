@@ -18,6 +18,7 @@ import {
   fetchMovieWatchProviders,
   fetchSimilarMovies,
   fetchRecommendedMovies,
+  discoverMovies,
 } from "../../adapters/tmdb/service";
 
 export async function movieRoutes(app: FastifyInstance) {
@@ -109,6 +110,35 @@ export async function movieRoutes(app: FastifyInstance) {
     }
     const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 10;
     return searchPeople(query, parsedLimit);
+  });
+
+  app.get("/api/movies/discover", async (req, reply) => {
+    const q = req.query as Record<string, string | undefined>;
+
+    const page = Number.isFinite(Number(q.page)) ? Math.max(1, Number(q.page)) : 1;
+    const rating_min = q.rating_min !== undefined ? Number(q.rating_min) : undefined;
+    const rating_max = q.rating_max !== undefined ? Number(q.rating_max) : undefined;
+    const runtime_min = q.runtime_min !== undefined ? Number(q.runtime_min) : undefined;
+    const runtime_max = q.runtime_max !== undefined ? Number(q.runtime_max) : undefined;
+    const year_from = q.year_from !== undefined ? Number(q.year_from) : undefined;
+    const year_to = q.year_to !== undefined ? Number(q.year_to) : undefined;
+    const with_cast = q.with_cast !== undefined ? Number(q.with_cast) : undefined;
+    const with_crew = q.with_crew !== undefined ? Number(q.with_crew) : undefined;
+
+    return discoverMovies({
+      query: q.query || undefined,
+      genre_ids: q.genre_ids || undefined,
+      year_from: Number.isFinite(year_from) ? year_from : undefined,
+      year_to: Number.isFinite(year_to) ? year_to : undefined,
+      rating_min: Number.isFinite(rating_min) ? rating_min : undefined,
+      rating_max: Number.isFinite(rating_max) ? rating_max : undefined,
+      runtime_min: Number.isFinite(runtime_min) ? runtime_min : undefined,
+      runtime_max: Number.isFinite(runtime_max) ? runtime_max : undefined,
+      with_cast: Number.isFinite(with_cast) ? with_cast : undefined,
+      with_crew: Number.isFinite(with_crew) ? with_crew : undefined,
+      sort_by: q.sort_by || "popularity.desc",
+      page,
+    });
   });
 
   app.get("/api/movies/:id", async (req, reply) => {
