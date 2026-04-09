@@ -1,4 +1,4 @@
-import { getStoredToken, getValidToken } from "@/lib/auth"
+import { getValidToken } from "@/lib/auth"
 
 type ApiErrorDetails = {
   status: number
@@ -49,9 +49,7 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
 
   const url = `${apiRoot}${path.startsWith("/") ? "" : "/"}${path}`
   const headers = new Headers()
-  const token = process.env.NODE_ENV === "production"
-    ? await getValidToken()
-    : (getStoredToken() ?? null)
+  const token = await getValidToken()
   if (token) {
     headers.set("Authorization", `Bearer ${token}`)
   } else if (process.env.NODE_ENV !== "production") {
@@ -558,6 +556,18 @@ export async function getMovieWatchProviders(movieId: string) {
   return requestJson<WatchProviders>(`/movies/${movieId}/watch-providers`)
 }
 
+export type WatchLink = {
+  providerName: string
+  url: string
+  type: "flatrate" | "rent" | "buy" | "free" | "ads" | "other"
+  logoPath: string | null
+}
+
+export async function getMovieWatchLinks(movieId: string, country = "IT") {
+  const query = buildQuery({ country })
+  return requestJson<WatchLink[]>(`/movies/${movieId}/watch-links${query}`)
+}
+
 export async function getSimilarMovies(movieId: string, limit = 12) {
   const query = buildQuery({ limit })
   return requestJson<MovieListItem[]>(`/movies/${movieId}/similar${query}`)
@@ -579,6 +589,19 @@ export async function getMoviesByPerson(
   return requestJson<MovieListItem[]>(
     `/movies/by-${role}/${personId}${query}`
   )
+}
+
+export interface PersonDetails {
+  id: number
+  name: string
+  profilePath?: string
+  biography?: string
+  birthday?: string
+  knownForDepartment?: string
+}
+
+export async function getPersonDetails(personId: string) {
+  return requestJson<PersonDetails>(`/people/${personId}`)
 }
 
 export async function getMoviesByGenre(

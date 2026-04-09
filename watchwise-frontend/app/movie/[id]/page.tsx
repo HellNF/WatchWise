@@ -15,9 +15,8 @@ import {
   getLists,
   getMovieDetails,
   getMovieImages,
-  getMovieStreaming,
   getMovieVideos,
-  getMovieWatchProviders,
+  getMovieWatchLinks,
   getRecommendedMovies,
   getSimilarMovies,
   getWatchHistory,
@@ -26,10 +25,9 @@ import {
   type MovieImages,
   type MovieListItem,
   type MovieVideos,
-  type StreamingAvailability,
   type UserList,
   type WatchHistoryEntry,
-  type WatchProviders,
+  type WatchLink,
 } from "@/lib/api"
 import {
   Carousel,
@@ -68,10 +66,9 @@ export default function MovieDetailsPage() {
   const router = useRouter()
 
   const [details, setDetails] = useState<MovieDetails | null>(null)
-  const [streaming, setStreaming] = useState<StreamingAvailability | null>(null)
   const [images, setImages] = useState<MovieImages | null>(null)
   const [videos, setVideos] = useState<MovieVideos | null>(null)
-  const [providers, setProviders] = useState<WatchProviders | null>(null)
+  const [watchLinks, setWatchLinks] = useState<WatchLink[]>([])
   const [similar, setSimilar] = useState<MovieListItem[]>([])
   const [recommended, setRecommended] = useState<MovieListItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -92,22 +89,20 @@ export default function MovieDetailsPage() {
         const data = await getMovieDetails(movieId)
         setDetails(data)
 
-        const [streamingResult, imagesResult, videosResult, providersResult, similarResult, recommendedResult] =
+        const [imagesResult, videosResult, similarResult, recommendedResult, watchLinksResult] =
           await Promise.allSettled([
-            getMovieStreaming(movieId, "IT"),
             getMovieImages(movieId),
             getMovieVideos(movieId, "it-IT"),
-            getMovieWatchProviders(movieId),
             getSimilarMovies(movieId, 12),
             getRecommendedMovies(movieId, 12),
+            getMovieWatchLinks(movieId, "IT"),
           ])
 
-        if (streamingResult.status === "fulfilled") setStreaming(streamingResult.value)
         if (imagesResult.status === "fulfilled") setImages(imagesResult.value)
         if (videosResult.status === "fulfilled") setVideos(videosResult.value)
-        if (providersResult.status === "fulfilled") setProviders(providersResult.value)
         if (similarResult.status === "fulfilled") setSimilar(similarResult.value)
         if (recommendedResult.status === "fulfilled") setRecommended(recommendedResult.value)
+        if (watchLinksResult.status === "fulfilled") setWatchLinks(watchLinksResult.value)
       } catch {
         setError("Unable to load movie details.")
       } finally {
@@ -185,8 +180,6 @@ export default function MovieDetailsPage() {
       type: "poster" as const,
     }))
   }, [images])
-
-  const providersEntry = providers?.results?.IT // Or dynamic country code
 
   const handleAlreadySeen = async (rating: number) => {
     if (!movieId) return
@@ -404,70 +397,91 @@ export default function MovieDetailsPage() {
                     </DropdownMenu>
                   </div>
 
-                  {/* WATCH PROVIDERS (Chunky Glass) */}
-                  {(providersEntry || streaming?.platforms?.length) && (
-                    <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-sm">
-                      <div className="space-y-4">
-                        
-                        {/* Stream / Flatrate */}
-                        {(providersEntry?.flatrate?.length || streaming?.platforms?.length) && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-                              <Tv className="h-3 w-3" /> Stream
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {providersEntry?.flatrate?.map((p) => (
-                                <div key={p.provider_name} className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/20 transition-colors cursor-default">
-                                  {p.logo_path && <img src={`https://image.tmdb.org/t/p/w45${p.logo_path}`} className="h-5 w-5 rounded-full" alt="" />}
-                                  {p.provider_name}
-                                </div>
-                              ))}
-                              {streaming?.platforms?.map((item) => (
-                                <Badge key={`${item.platform}-${item.type}`} variant="secondary" className="bg-emerald-500/10 text-emerald-100 border-emerald-500/20">
-                                  {item.platform}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Rent/Buy Group */}
-                        {(providersEntry?.rent?.length || providersEntry?.buy?.length) && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5">
-                            {providersEntry?.rent?.length ? (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-400">
-                                  <CreditCard className="h-3 w-3" /> Rent
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {providersEntry.rent.map((p) => (
-                                    <div key={`rent-${p.provider_name}`} className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-[10px] text-blue-100">
-                                      {p.provider_name}
-                                    </div>
-                                  ))}
-                                </div>
+                  {/* WATCH PROVIDERS — JustWatch direct links */}
+                  {watchLinks.length > 0 && (() => {
+                    const flatrate = watchLinks.filter((l) => l.type === "flatrate" || l.type === "free" || l.type === "ads")
+                    const rent = watchLinks.filter((l) => l.type === "rent")
+                    const buy = watchLinks.filter((l) => l.type === "buy")
+                    return (
+                      <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-sm">
+                        <div className="space-y-4">
+                          {flatrate.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                                <Tv className="h-3 w-3" /> Stream
                               </div>
-                            ) : null}
-                            
-                            {providersEntry?.buy?.length ? (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-violet-400">
-                                  <ShoppingBag className="h-3 w-3" /> Buy
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {providersEntry.buy.map((p) => (
-                                    <div key={`buy-${p.provider_name}`} className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/20 px-2 py-1 text-[10px] text-violet-100">
-                                      {p.provider_name}
-                                    </div>
-                                  ))}
-                                </div>
+                              <div className="flex flex-wrap gap-2">
+                                {flatrate.map((l) => (
+                                  <a
+                                    key={`stream-${l.providerName}`}
+                                    href={l.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                                  >
+                                    {l.logoPath && (
+                                      <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-5 w-5 rounded-md" alt="" />
+                                    )}
+                                    {l.providerName}
+                                  </a>
+                                ))}
                               </div>
-                            ) : null}
-                          </div>
-                        )}
+                            </div>
+                          )}
+                          {(rent.length > 0 || buy.length > 0) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                              {rent.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-400">
+                                    <CreditCard className="h-3 w-3" /> Rent
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {rent.map((l) => (
+                                      <a
+                                        key={`rent-${l.providerName}`}
+                                        href={l.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-[10px] text-blue-100 hover:bg-blue-500/20 transition-colors"
+                                      >
+                                        {l.logoPath && (
+                                          <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-4 w-4 rounded-md" alt="" />
+                                        )}
+                                        {l.providerName}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {buy.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-violet-400">
+                                    <ShoppingBag className="h-3 w-3" /> Buy
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {buy.map((l) => (
+                                      <a
+                                        key={`buy-${l.providerName}`}
+                                        href={l.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/20 px-2 py-1 text-[10px] text-violet-100 hover:bg-violet-500/20 transition-colors"
+                                      >
+                                        {l.logoPath && (
+                                          <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-4 w-4 rounded-md" alt="" />
+                                        )}
+                                        {l.providerName}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
 
                 </div>
               </div>

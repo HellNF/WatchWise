@@ -212,6 +212,96 @@ export async function fetchMovieWatchProviders(tmdbId: number) {
   return data;
 }
 
+export type JustWatchOffer = {
+  providerName: string;
+  url: string;
+  type: "flatrate" | "rent" | "buy" | "free" | "ads" | "other";
+};
+
+const JW_GRAPHQL = "https://apis.justwatch.com/graphql";
+
+const JW_QUERY = `
+  query GetStreamingOffers($country: Country!, $language: Language!, $title: String!) {
+    searchTitles(
+      country: $country
+      language: $language
+      first: 8
+      source: "justwatch-android"
+      filter: { searchQuery: $title, objectTypes: [MOVIE] }
+    ) {
+      edges {
+        node {
+          ... on Movie {
+            objectId
+            content(country: $country, language: $language) {
+              title
+              externalIds { tmdbId }
+            }
+            offers(country: $country, platform: WEB) {
+              monetizationType
+              standardWebURL
+              package { clearName }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function fetchJustWatchLinks(
+  tmdbId: number,
+  title: string,
+  country = "IT"
+): Promise<JustWatchOffer[]> {
+  const cacheKey = `jw:links:${tmdbId}:${country}`;
+  const cached = getCached<JustWatchOffer[]>(cacheKey);
+  if (cached) return cached;
+
+  const language = country === "IT" ? "it" : "en";
+
+  const res = await fetch(JW_GRAPHQL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: JW_QUERY,
+      variables: { country, language, title },
+    }),
+  });
+
+  if (!res.ok) return [];
+
+  const json = await res.json() as any;
+  const edges: any[] = json?.data?.searchTitles?.edges ?? [];
+
+  // prefer TMDB-ID match (externalIds.tmdbId is a string), fallback to first result
+  const match =
+    edges.find((e) => e.node?.content?.externalIds?.tmdbId === String(tmdbId)) ??
+    edges[0];
+
+  if (!match) return [];
+
+  const offers: JustWatchOffer[] = (match.node.offers ?? [])
+    .filter((o: any) => o.standardWebURL)
+    .map((o: any) => ({
+      providerName: o.package.clearName as string,
+      url: o.standardWebURL as string,
+      type: (o.monetizationType?.toLowerCase() ?? "other") as JustWatchOffer["type"],
+    }));
+
+  // deduplicate by providerName + type
+  const seen = new Set<string>();
+  const deduped = offers.filter((o) => {
+    const key = `${o.providerName}:${o.type}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  setCached(cacheKey, deduped);
+  return deduped;
+}
+
 export async function fetchMovieByActor(
   actorId: number,
   region?: string,
@@ -396,6 +486,44 @@ export async function discoverMovies(
     page: data.page,
     total_pages: data.total_pages ?? 1,
   };
+  setCached(cacheKey, result);
+  return result;
+}
+
+export interface PersonDetails {
+  id: number;
+  name: string;
+  profilePath?: string;
+  biography?: string;
+  birthday?: string;
+  knownForDepartment?: string;
+}
+
+export async function fetchPersonDetails(personId: number): Promise<PersonDetails> {
+  const cacheKey = `tmdb:person:${personId}:details`;
+  const cached = getCached(cacheKey) as PersonDetails | undefined;
+  if (cached) return cached;
+
+  const data = await tmdbFetch<{
+    id: number;
+    name: string;
+    profile_path?: string;
+    biography?: string;
+    birthday?: string;
+    known_for_department?: string;
+  }>(`/person/${personId}`);
+
+  const result: PersonDetails = {
+    id: data.id,
+    name: data.name,
+    profilePath: data.profile_path
+      ? `https://image.tmdb.org/t/p/w300${data.profile_path}`
+      : undefined,
+    biography: data.biography || undefined,
+    birthday: data.birthday || undefined,
+    knownForDepartment: data.known_for_department || undefined,
+  };
+
   setCached(cacheKey, result);
   return result;
 }

@@ -4,7 +4,6 @@ export type OAuthProviderId = "google" | "github"
 
 const TOKEN_KEY = "watchwise-token"
 const USER_KEY = "watchwise-user"
-const TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 
 function isBrowser() {
   return typeof window !== "undefined"
@@ -57,13 +56,18 @@ export async function startOAuth(provider: OAuthProviderId, options?: { redirect
 export function storeSession(session: { token?: string; user?: unknown }) {
   if (!isBrowser()) return
   if (session.token) {
+    // Store in localStorage for synchronous client-side API calls
     localStorage.setItem(TOKEN_KEY, session.token)
-    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(session.token)}; Path=/; Max-Age=${TOKEN_COOKIE_MAX_AGE}; SameSite=Lax`
+    // Set HttpOnly Secure cookie server-side (fire-and-forget — localStorage is already set)
+    fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: session.token }),
+    }).catch(() => { /* non-critical: localStorage is the primary client-side store */ })
   }
   if (session.user) {
     localStorage.setItem(USER_KEY, JSON.stringify(session.user))
   }
-  // Notify components (e.g. Header) that auth state has changed
   window.dispatchEvent(new Event("watchwise-auth-changed"))
 }
 
@@ -100,6 +104,7 @@ export function clearSession() {
   if (!isBrowser()) return
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
-  document.cookie = `${TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax`
+  // Clear HttpOnly cookie server-side (cannot be cleared via document.cookie when HttpOnly)
+  fetch("/api/auth/session", { method: "DELETE" }).catch(() => {})
   getSupabaseClient().auth.signOut()
 }

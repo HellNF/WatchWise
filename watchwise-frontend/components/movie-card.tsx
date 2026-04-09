@@ -37,15 +37,15 @@ export function MovieCard({
 
   return (
     <div className={className ? `group flex flex-col text-left ${className}` : "group flex flex-col text-left"}>
-      <div className="relative">
+      <div className="relative transition-all duration-300 group-hover:scale-[1.03] group-hover:drop-shadow-[0_0_22px_oklch(0.85_0.15_175_/_0.45)] will-change-transform">
         <Link
           href={href}
-          className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-border/30 hover:ring-primary/50 transition"
+          className="relative block aspect-[2/3] rounded-xl overflow-hidden"
         >
           <img
             src={poster || "/placeholder.svg"}
             alt={title}
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {isDiscovery && (
             <Badge className="absolute top-2 left-2 bg-discovery/90 text-discovery-foreground text-[10px] px-1.5 py-0.5 gap-0.5">

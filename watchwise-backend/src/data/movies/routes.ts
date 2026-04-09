@@ -20,6 +20,8 @@ import {
   fetchRecommendedMovies,
   discoverMovies,
   searchKeywords,
+  fetchPersonDetails,
+  fetchJustWatchLinks,
 } from "../../adapters/tmdb/service";
 
 export async function movieRoutes(app: FastifyInstance) {
@@ -101,6 +103,14 @@ export async function movieRoutes(app: FastifyInstance) {
     }
     const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 10;
     return searchMovies(query, parsedLimit);
+  });
+
+  app.get("/api/people/:id", async (req, reply) => {
+    const id = Number((req.params as any).id);
+    if (!Number.isFinite(id)) {
+      return reply.code(400).send({ error: "Invalid person id" });
+    }
+    return fetchPersonDetails(id);
   });
 
   app.get("/api/people/search", async (req, reply) => {
@@ -232,6 +242,43 @@ export async function movieRoutes(app: FastifyInstance) {
 
     return fetchMovieWatchProviders(id);
   });
+  app.get("/api/movies/:id/watch-links", async (req, reply) => {
+    const rawId = String((req.params as any).id ?? "");
+    const numericPart = rawId.includes(":") ? rawId.split(":").pop() : rawId;
+    const id = Number(numericPart);
+    if (!Number.isFinite(id)) {
+      return reply.code(400).send({ error: "Invalid movie id" });
+    }
+    const { country = "IT" } = (req.query as any) ?? {};
+
+    try {
+      const [details, tmdbProviders] = await Promise.all([
+        fetchMovieDetails(id),
+        fetchMovieWatchProviders(id).catch(() => null),
+      ]);
+      const title = (details as any).title ?? "";
+      const links = await fetchJustWatchLinks(id, title, country);
+
+      // build logo map from TMDB: normalised name → logo_path
+      const logoMap = new Map<string, string>();
+      const regionData = (tmdbProviders as any)?.results?.[country];
+      for (const group of ["flatrate", "rent", "buy", "free"] as const) {
+        for (const p of regionData?.[group] ?? []) {
+          if (p.logo_path) {
+            logoMap.set(p.provider_name.toLowerCase(), p.logo_path);
+          }
+        }
+      }
+
+      return links.map((l) => ({
+        ...l,
+        logoPath: logoMap.get(l.providerName.toLowerCase()) ?? null,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
   app.get("/api/movies/genres", async (req, reply) => {
     try {
       const genres = await fetchMovieGenres();

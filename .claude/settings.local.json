@@ -13,7 +13,13 @@
       "mcp__plugin_supabase_supabase__apply_migration",
       "mcp__plugin_supabase_supabase__get_advisors",
       "Bash(grep:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Read(//c/Users/nicol/.claude/plugins/**)",
+      "Read(//c/Users/nicol/.claude/skills/**)",
+      "Skill(update-config)",
+      "Bash(curl -s \"http://localhost:3001/api/movies/550/watch-links?country=IT\")",
+      "Bash(curl -s -X POST https://apis.justwatch.com/graphql -H 'Content-Type: application/json' -d '{\"query\":\"query { popularTitles\\(country: IT, first: 3, filter: { searchQuery: \\\\\"Fight Club\\\\\", objectTypes: [MOVIE] }, language: it, sortBy: RELEVANCE, sortRandomSeed: 0\\) { edges { node { ... on Movie { objectId content\\(country: IT, language: it\\) { title externalIds { tmdbId } } offers\\(country: IT, platform: WEB\\) { monetizationType standardWebURL package { clearName } } } } } } }\"}')",
+      "Bash(curl:*)"
     ]
   }
 }

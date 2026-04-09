@@ -87,3 +87,25 @@ Uses Next.js App Router. All pages are under `app/`. The app is dark-mode only (
 ## API Documentation
 
 Full API spec: `apiDoc.apib` (API Blueprint format), hosted at https://watchwise.docs.apiary.io/
+
+## Design Context
+
+> Full detail in `.impeccable.md` at the project root. Summary below.
+
+### Users
+Chiunque soffra di "paralisi da scelta" cinematografica: gruppi di amici, cinefili solitari, coppie, famiglie. Contesto d'uso: serata, divano, luce bassa.
+
+### Brand Personality
+**Moderno · Veloce · Magico** — consulente cinematografico AI, preciso ed elegante. Tono diretto ("Stop searching. Start watching."), mai giocoso né formale. La magia si mostra, non si grida.
+
+### Aesthetic Direction
+- Riferimenti: Vercel/Raycast (dark, preciso, premium) + Apple TV+/Netflix (immersivo, grandi immagini)
+- Dark mode permanente, sfondo `oklch(0.08)`, primario mint/cyan, accent viola CTA, oro Discovery
+- Glass morphism, gradient glow ambientali, animazioni fluide (`ease: [0.23,1,0.32,1]`), pill CTA, card arrotondate
+
+### Design Principles
+1. **Cinematic immediacy** — Ogni schermata apre come una scena iniziale: immediata, potente, senza ambiguità. Titolo + azione principale leggibili in <2s.
+2. **Intelligent minimalism** — Rimuovere il rumore finché ciò che rimane sembra inevitabile. Nessuna decorazione senza funzione.
+3. **Light as a design element** — Nero profondo come fondale; mint/cyan e viola come riflettori. I glow ambientali guidano l'occhio, usarli con parsimonia.
+4. **Magic in motion** — Animazioni veloci e fluide (160–500ms). Comunicano intelligenza, non fanno solo effetto. Rispettare `prefers-reduced-motion`.
+5. **Accessible darkness** — WCAG AA minimo su tutto il testo, navigazione keyboard completa, screen reader friendly.

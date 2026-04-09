@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { HeroRecommendation, type HeroMovie } from "@/components/hero-recommendation"
@@ -8,7 +8,6 @@ import { AlternativeMovies, type AlternativeMovieItem } from "@/components/alter
 import { BottomNav } from "@/components/bottom-nav"
 import { MoodQuestionnaire, type UserPreferences } from "@/components/mood-questionnaire"
 import { PodiumRow, type PodiumItem } from "@/components/podium-row"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   getMovieDetails,
@@ -92,6 +91,15 @@ function MoviePageInner() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
 
+  // Refs to avoid stale closures in IntersectionObserver
+  const loadingRef = useRef(false)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { pageRef.current = page }, [page])
+  useEffect(() => { hasMoreRef.current = hasMore }, [hasMore])
+
   useEffect(() => {
     setMounted(true)
     if (shouldShowQuestionnaire()) {
@@ -100,45 +108,57 @@ function MoviePageInner() {
     }
   }, [])
 
+  const loadMovies = useCallback(async (pageToLoad: number, replace = false) => {
+    if (loadingRef.current) return
+    loadingRef.current = true
+    if (pageToLoad > 1) setLoadingMore(true)
+    try {
+      const list = await getMoviesByCategory(categoryKey, { limit: 20, page: pageToLoad })
+      setHasMore(list.length >= 20)
+      setPage(pageToLoad)
+      setAllMovies((prev) => {
+        const base = replace ? [] : prev
+        const merged = [...base, ...list]
+        const seen = new Set<string>()
+        return merged.filter((item) => {
+          if (seen.has(item.movieId)) return false
+          seen.add(item.movieId)
+          return true
+        })
+      })
+    } catch (error) {
+      console.error("Failed to load movies", error)
+    } finally {
+      loadingRef.current = false
+      setLoadingMore(false)
+    }
+  }, [categoryKey])
+
+  // Reset and initial load when category changes
   useEffect(() => {
     setAllMovies([])
     setPage(1)
     setHasMore(true)
-  }, [categoryKey])
+    pageRef.current = 1
+    hasMoreRef.current = true
+    void loadMovies(1, true)
+  }, [categoryKey, loadMovies])
 
+  // Infinite scroll via IntersectionObserver
   useEffect(() => {
-    const fetchMovies = async (pageToLoad: number, replace = false) => {
-      try {
-        if (pageToLoad > 1) setLoadingMore(true)
-
-        const list = await getMoviesByCategory(categoryKey, {
-          limit: 20,
-          page: pageToLoad,
-        })
-
-        setHasMore(list.length >= 20)
-        setPage(pageToLoad)
-
-        setAllMovies((prev) => {
-          const base = replace ? [] : prev
-          const merged = [...base, ...list]
-          const seen = new Set<string>()
-          return merged.filter((item) => {
-            const id = item.movieId
-            if (seen.has(id)) return false
-            seen.add(id)
-            return true
-          })
-        })
-      } catch (error) {
-        console.error("Failed to load movies", error)
-      } finally {
-        setLoadingMore(false)
-      }
-    }
-
-    fetchMovies(1, true)
-  }, [categoryKey])
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRef.current && !loadingRef.current) {
+          void loadMovies(pageRef.current + 1)
+        }
+      },
+      { rootMargin: "400px" }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loadMovies])
 
   useEffect(() => {
     const normalizeMovieId = (value: string) => (value.includes(":") ? value.split(":").pop() ?? value : value)
@@ -299,53 +319,19 @@ function MoviePageInner() {
 
             <AlternativeMovies movies={alternatives} />
 
-            <div className="flex justify-center pt-12">
-              {hasMore ? (
-                <Button
-                  onClick={() => {
-                    if (loadingMore) return
-                    const nextPage = page + 1
-                    setPage(nextPage)
-
-                    void (async () => {
-                      try {
-                        setLoadingMore(true)
-                        const list = await getMoviesByCategory(categoryKey, {
-                          limit: 20,
-                          page: nextPage,
-                        })
-                        setHasMore(list.length >= 20)
-                        setAllMovies((prev) => {
-                          const merged = [...prev, ...list]
-                          const seen = new Set<string>()
-                          return merged.filter((item) => {
-                            const id = item.movieId
-                            if (seen.has(id)) return false
-                            seen.add(id)
-                            return true
-                          })
-                        })
-                      } catch (error) {
-                        console.error("Failed to load more movies", error)
-                      } finally {
-                        setLoadingMore(false)
-                      }
-                    })()
-                  }}
-                  disabled={loadingMore}
-                  variant="outline"
-                  className="rounded-full h-12 px-8 border-white/10 bg-zinc-900/60 hover:bg-white/10 hover:text-white transition-all shadow-lg"
-                >
-                  {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  {loadingMore ? "Loading..." : "Load More Movies"}
-                </Button>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-zinc-500 py-8">
-                  <div className="h-1 w-12 bg-zinc-800 rounded-full" />
-                  <p className="text-sm">You've reached the end of the list</p>
-                </div>
-              )}
-            </div>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-1" aria-hidden />
+            {loadingMore && (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {!hasMore && allMovies.length > 0 && (
+              <div className="flex flex-col items-center gap-2 text-zinc-500 py-10">
+                <div className="h-1 w-12 bg-zinc-800 rounded-full" />
+                <p className="text-sm">You've seen it all</p>
+              </div>
+            )}
           </section>
         </div>
       </div>

@@ -100,31 +100,35 @@ function CategoryRow({
         </div>
 
         {/* Carousel Row */}
-        <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
-          <CarouselContent className="-ml-4">
-            {list.map((movie) => (
-              <CarouselItem key={movie.id} className="pl-4 basis-[150px] sm:basis-[180px] md:basis-[220px]">
-                <MovieCard
-                  id={movie.id}
-                  title={movie.title}
-                  poster={movie.poster}
-                  year={movie.year}
-                  rating={movie.rating}
-                  isDiscovery={movie.isDiscovery}
-                  reason={movie.reason}
-                >
-                  <MovieQuickActions movieId={movie.id} />
-                </MovieCard>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          {/* Floating Navigation Buttons */}
-          <div className="hidden md:block pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-zinc-950 to-transparent z-10" />
-          <div className="hidden md:block pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent z-10" />
-          
-          <CarouselPrevious className="hidden md:flex -left-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
-          <CarouselNext className="hidden md:flex -right-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
-        </Carousel>
+        <div className="relative">
+          <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
+            <CarouselContent className="-ml-4">
+              {list.map((movie) => (
+                <CarouselItem key={movie.id} className="pl-4 basis-[150px] sm:basis-[180px] md:basis-[220px]">
+                  <MovieCard
+                    id={movie.id}
+                    title={movie.title}
+                    poster={movie.poster}
+                    year={movie.year}
+                    rating={movie.rating}
+                    isDiscovery={movie.isDiscovery}
+                    reason={movie.reason}
+                  >
+                    <MovieQuickActions movieId={movie.id} />
+                  </MovieCard>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {/* Desktop fade edges + navigation */}
+            <div className="hidden md:block pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-zinc-950 to-transparent z-10" />
+            <div className="hidden md:block pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent z-10" />
+
+            <CarouselPrevious className="hidden md:flex -left-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
+            <CarouselNext className="hidden md:flex -right-4 border-white/10 bg-black/50 hover:bg-black/80 text-white z-20 h-10 w-10" />
+          </Carousel>
+          {/* Mobile right-edge fade — pointer-events-none preserves swipe */}
+          <div className="md:hidden absolute inset-y-0 right-0 w-16 bg-gradient-to-r from-transparent to-zinc-950 pointer-events-none z-10" />
+        </div>
       </div>
     </section>
   )
