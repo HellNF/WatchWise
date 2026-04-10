@@ -591,17 +591,38 @@ export async function getMoviesByPerson(
   )
 }
 
-export interface PersonDetails {
+export interface PersonCreditItem {
+  id: number
+  title: string
+  year?: number
+  posterPath?: string
+  popularity: number
+  voteAverage: number
+  mediaType: "movie" | "tv"
+  character?: string
+  job?: string
+}
+
+export interface PersonFullDetails {
   id: number
   name: string
   profilePath?: string
   biography?: string
   birthday?: string
+  deathday?: string
+  gender?: string
+  placeOfBirth?: string
+  alsoKnownAs: string[]
   knownForDepartment?: string
+  imdbId?: string
+  instagramId?: string
+  images: Array<{ filePath: string; width: number; height: number }>
+  movieCredits: PersonCreditItem[]
+  tvCredits: PersonCreditItem[]
 }
 
 export async function getPersonDetails(personId: string) {
-  return requestJson<PersonDetails>(`/people/${personId}`)
+  return requestJson<PersonFullDetails>(`/people/${personId}`)
 }
 
 export async function getMoviesByGenre(

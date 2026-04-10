@@ -10,6 +10,8 @@ import {
   TMDBMovieImagesResponse,
   TMDBMovieVideosResponse,
   TMDBKeywordSearchResponse,
+  TMDBPersonFullResponse,
+  TMDBPersonCreditItem,
 } from "./types";
 import {
   mapTMDBMovieToCandidate,
@@ -490,30 +492,97 @@ export async function discoverMovies(
   return result;
 }
 
-export interface PersonDetails {
+export interface PersonCreditItem {
+  id: number;
+  title: string;
+  year?: number;
+  posterPath?: string;
+  popularity: number;
+  voteAverage: number;
+  mediaType: "movie" | "tv";
+  character?: string;
+  job?: string;
+}
+
+export interface PersonFullDetails {
   id: number;
   name: string;
   profilePath?: string;
   biography?: string;
   birthday?: string;
+  deathday?: string;
+  gender?: string;
+  placeOfBirth?: string;
+  alsoKnownAs: string[];
   knownForDepartment?: string;
+  imdbId?: string;
+  instagramId?: string;
+  images: Array<{ filePath: string; width: number; height: number }>;
+  movieCredits: PersonCreditItem[];
+  tvCredits: PersonCreditItem[];
 }
 
-export async function fetchPersonDetails(personId: number): Promise<PersonDetails> {
-  const cacheKey = `tmdb:person:${personId}:details`;
-  const cached = getCached(cacheKey) as PersonDetails | undefined;
+function mapGender(g: number): string | undefined {
+  if (g === 1) return "Female";
+  if (g === 2) return "Male";
+  if (g === 3) return "Non-binary";
+  return undefined;
+}
+
+function mapCreditItem(item: TMDBPersonCreditItem): PersonCreditItem {
+  const rawTitle = item.title ?? item.name ?? "Unknown";
+  const rawDate = item.release_date ?? item.first_air_date;
+  const year = rawDate ? new Date(rawDate).getFullYear() : undefined;
+  return {
+    id: item.id,
+    title: rawTitle,
+    year: Number.isFinite(year) ? year : undefined,
+    posterPath: item.poster_path
+      ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
+      : undefined,
+    popularity: item.popularity,
+    voteAverage: item.vote_average,
+    mediaType: item.media_type,
+    character: item.character || undefined,
+    job: item.job || undefined,
+  };
+}
+
+export async function fetchPersonFullDetails(personId: number): Promise<PersonFullDetails> {
+  const cacheKey = `tmdb:person:${personId}:full`;
+  const cached = getCached(cacheKey) as PersonFullDetails | undefined;
   if (cached) return cached;
 
-  const data = await tmdbFetch<{
-    id: number;
-    name: string;
-    profile_path?: string;
-    biography?: string;
-    birthday?: string;
-    known_for_department?: string;
-  }>(`/person/${personId}`);
+  const data = await tmdbFetch<TMDBPersonFullResponse>(
+    `/person/${personId}`,
+    { append_to_response: "external_ids,images,combined_credits" }
+  );
 
-  const result: PersonDetails = {
+  const dedupeById = (items: PersonCreditItem[]): PersonCreditItem[] => {
+    const seen = new Set<number>();
+    return items.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  };
+
+  const allCast = data.combined_credits.cast.map(mapCreditItem);
+  const allCrew = data.combined_credits.crew.map(mapCreditItem);
+
+  const movieCast = allCast.filter((c) => c.mediaType === "movie");
+  const movieCrew = allCrew.filter((c) => c.mediaType === "movie" && c.job === "Director");
+  const movieCredits = dedupeById(
+    [...movieCast, ...movieCrew].sort((a, b) => b.popularity - a.popularity)
+  );
+
+  const tvCast = allCast.filter((c) => c.mediaType === "tv");
+  const tvCrew = allCrew.filter((c) => c.mediaType === "tv" && c.job === "Director");
+  const tvCredits = dedupeById(
+    [...tvCast, ...tvCrew].sort((a, b) => b.popularity - a.popularity)
+  );
+
+  const result: PersonFullDetails = {
     id: data.id,
     name: data.name,
     profilePath: data.profile_path
@@ -521,7 +590,20 @@ export async function fetchPersonDetails(personId: number): Promise<PersonDetail
       : undefined,
     biography: data.biography || undefined,
     birthday: data.birthday || undefined,
+    deathday: data.deathday || undefined,
+    gender: mapGender(data.gender),
+    placeOfBirth: data.place_of_birth || undefined,
+    alsoKnownAs: data.also_known_as ?? [],
     knownForDepartment: data.known_for_department || undefined,
+    imdbId: data.external_ids?.imdb_id || undefined,
+    instagramId: data.external_ids?.instagram_id || undefined,
+    images: (data.images?.profiles ?? []).slice(0, 6).map((p) => ({
+      filePath: `https://image.tmdb.org/t/p/w185${p.file_path}`,
+      width: p.width,
+      height: p.height,
+    })),
+    movieCredits,
+    tvCredits,
   };
 
   setCached(cacheKey, result);

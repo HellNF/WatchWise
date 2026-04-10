@@ -20,7 +20,7 @@ import {
   fetchRecommendedMovies,
   discoverMovies,
   searchKeywords,
-  fetchPersonDetails,
+  fetchPersonFullDetails,
   fetchJustWatchLinks,
 } from "../../adapters/tmdb/service";
 
@@ -110,7 +110,7 @@ export async function movieRoutes(app: FastifyInstance) {
     if (!Number.isFinite(id)) {
       return reply.code(400).send({ error: "Invalid person id" });
     }
-    return fetchPersonDetails(id);
+    return fetchPersonFullDetails(id);
   });
 
   app.get("/api/people/search", async (req, reply) => {
