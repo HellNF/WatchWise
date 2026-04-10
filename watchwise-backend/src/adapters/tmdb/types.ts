@@ -140,5 +140,57 @@ export interface TMDBKeywordSearchResponse {
   results: TMDBKeyword[];
 }
 
+// ===== PERSON FULL DETAILS (append_to_response) =====
 
+export interface TMDBPersonCreditItem {
+  id: number;
+  title?: string;         // movies
+  name?: string;          // TV shows
+  media_type: "movie" | "tv";
+  release_date?: string;
+  first_air_date?: string;
+  popularity: number;
+  vote_average: number;
+  vote_count: number;
+  poster_path?: string;
+  character?: string;     // cast credits
+  job?: string;           // crew credits
+  department?: string;
+  order?: number;
+}
 
+export interface TMDBPersonExternalIds {
+  imdb_id?: string;
+  instagram_id?: string;
+  twitter_id?: string;
+  facebook_id?: string;
+  tiktok_id?: string;
+}
+
+export interface TMDBPersonImageProfile {
+  file_path: string;
+  width: number;
+  height: number;
+}
+
+export interface TMDBPersonFullResponse {
+  id: number;
+  name: string;
+  profile_path?: string;
+  biography?: string;
+  birthday?: string;
+  deathday?: string;
+  gender: number;           // 0=not set, 1=female, 2=male, 3=non-binary
+  place_of_birth?: string;
+  also_known_as: string[];
+  known_for_department?: string;
+  popularity: number;
+  external_ids: TMDBPersonExternalIds;
+  images: {
+    profiles: TMDBPersonImageProfile[];
+  };
+  combined_credits: {
+    cast: TMDBPersonCreditItem[];
+    crew: TMDBPersonCreditItem[];
+  };
+}
