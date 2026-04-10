@@ -196,7 +196,7 @@ function StickyHeader() {
           : "bg-transparent border-transparent py-4"
       )}
     >
-      <div className="flex items-center justify-between px-6 max-w-7xl mx-auto">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 cursor-pointer">
           <div className="p-1.5 rounded-lg">
             <LogoMagicStroke className="h-10 w-auto" />
@@ -340,12 +340,12 @@ function Hero() {
   }, [])
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+    <section className="relative overflow-hidden pb-20 pt-28 md:pb-32 md:pt-48">
       {/* Background ambience */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/20 blur-[120px] rounded-full opacity-30 pointer-events-none" />
-      <div className="absolute top-1/2 right-0 w-[800px] h-[600px] bg-accent/10 blur-[100px] rounded-full opacity-20 pointer-events-none" />
+      <div className="absolute left-1/2 top-0 h-[340px] w-[340px] -translate-x-1/2 rounded-full bg-primary/20 blur-[90px] opacity-30 pointer-events-none sm:h-[520px] sm:w-[680px] sm:blur-[110px] lg:h-[600px] lg:w-[1000px] lg:blur-[120px]" />
+      <div className="absolute right-[-18%] top-[42%] h-[280px] w-[280px] rounded-full bg-accent/10 blur-[80px] opacity-20 pointer-events-none sm:right-0 sm:h-[420px] sm:w-[420px] sm:blur-[90px] lg:h-[600px] lg:w-[800px] lg:blur-[100px]" />
 
-      <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
         <motion.div variants={staggerV} initial="hidden" animate="visible">
           <motion.div
             variants={heroItemV}
@@ -357,7 +357,7 @@ function Hero() {
 
           <motion.h1
             variants={heroItemV}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.05]"
+            className="mb-6 text-4xl font-bold leading-[1.02] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
             style={{ textWrap: "balance" } as React.CSSProperties}
           >
             Stop searching.{" "}
@@ -369,7 +369,7 @@ function Hero() {
 
           <motion.p
             variants={heroItemV}
-            className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg leading-relaxed"
+            className="mb-8 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl"
             style={{ textWrap: "pretty" } as React.CSSProperties}
           >
             The intelligent platform that blends your unique taste, current mood, and group dynamics to find the perfect movie — instantly.
@@ -396,7 +396,7 @@ function Hero() {
             </Button>
           </motion.div>
 
-          <motion.div variants={heroItemV} className="mt-8 flex items-center gap-4 text-sm text-muted-foreground">
+          <motion.div variants={heroItemV} className="mt-8 flex flex-col items-start gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
             <div className="flex -space-x-2">
               {SOCIAL_PROOF_AVATARS.map((av) => (
                 <Avatar key={av.id} className="h-8 w-8 border-2 border-background">
@@ -417,7 +417,7 @@ function Hero() {
           initial={{ opacity: 0, transform: "scale(0.95)" }}
           animate={{ opacity: 1, transform: "scale(1)" }}
           transition={{ duration: 0.6, delay: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          className="relative h-[500px] w-full hidden lg:block"
+          className="relative hidden h-[500px] w-full lg:block"
         >
           <motion.div
             animate={{ y: [0, -15, 0] }}
@@ -470,8 +470,8 @@ function Hero() {
 
 function BentoFeatures() {
   return (
-    <section id="features" className="py-24 relative">
-      <div className="max-w-7xl mx-auto px-6">
+    <section id="features" className="relative py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center mb-16 max-w-2xl mx-auto">
           <SectionBadge>Features</SectionBadge>
           <h2
@@ -483,10 +483,10 @@ function BentoFeatures() {
           <p className="text-muted-foreground text-lg">We don't just show you movies. We help you choose.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
+        <div className="grid auto-rows-[260px] grid-cols-1 gap-4 sm:auto-rows-[280px] sm:gap-6 md:grid-cols-3">
           {/* Large feature card */}
           <GlassCard
-            className="md:col-span-2 row-span-1 md:row-span-2 p-8 flex flex-col justify-between group overflow-hidden"
+            className="group row-span-1 flex flex-col justify-between overflow-hidden p-6 md:col-span-2 md:row-span-2 md:p-8"
             gradient
           >
             <div className="relative z-10">
@@ -522,7 +522,7 @@ function BentoFeatures() {
           </GlassCard>
 
           {/* Quick actions */}
-          <GlassCard className="p-8 flex flex-col justify-center group hover:border-primary/40 transition-colors">
+          <GlassCard className="group flex flex-col justify-center p-6 transition-colors hover:border-primary/40 md:p-8">
             <div className="bg-primary/20 w-fit p-3 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-200">
               <Zap className="w-6 h-6 text-primary" />
             </div>
@@ -533,7 +533,7 @@ function BentoFeatures() {
           </GlassCard>
 
           {/* Group sync */}
-          <GlassCard className="p-8 flex flex-col justify-center group hover:border-primary/40 transition-colors">
+          <GlassCard className="group flex flex-col justify-center p-6 transition-colors hover:border-primary/40 md:p-8">
             <div className="bg-primary/20 w-fit p-3 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-200">
               <Users className="w-6 h-6 text-primary" />
             </div>
@@ -571,8 +571,8 @@ function HowItWorks() {
   ]
 
   return (
-    <section className="py-24 bg-gradient-to-b from-background via-white/[0.02] to-background border-y border-white/5">
-      <div className="max-w-5xl mx-auto px-6">
+    <section className="border-y border-white/5 bg-gradient-to-b from-background via-white/[0.02] to-background py-20 sm:py-24">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="text-center mb-16">
           <SectionBadge>How it works</SectionBadge>
           <h2
@@ -584,7 +584,7 @@ function HowItWorks() {
         </div>
 
         <motion.div
-          className="grid md:grid-cols-3 gap-8 relative"
+          className="relative grid gap-10 md:grid-cols-3 md:gap-8"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }}
           initial="hidden"
           whileInView="visible"
@@ -619,8 +619,8 @@ function HowItWorks() {
 
 function MovieNight() {
   return (
-    <section id="movie-night" className="py-32 overflow-hidden relative">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
+    <section id="movie-night" className="relative overflow-hidden py-24 sm:py-32">
+      <div className="mx-auto flex max-w-7xl flex-col items-center gap-12 px-4 sm:px-6 md:flex-row md:gap-16">
         <div className="flex-1 space-y-8 z-10">
           <SectionBadge>Movie night mode</SectionBadge>
           <h2
@@ -646,7 +646,7 @@ function MovieNight() {
               </li>
             ))}
           </ul>
-          <Button size="lg" className="glow-primary rounded-full px-8 mt-4">
+          <Button size="lg" className="glow-primary mt-4 w-full rounded-full px-8 sm:w-auto">
             Start a group session
           </Button>
         </div>
@@ -655,7 +655,7 @@ function MovieNight() {
         <div className="flex-1 relative w-full flex justify-center">
           <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-40 pointer-events-none" />
 
-          <GlassCard className="w-[380px] p-6 relative z-10 animate-float">
+          <GlassCard className="relative z-10 w-full max-w-[380px] animate-float p-5 sm:p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
               <div>
@@ -715,7 +715,7 @@ function ShowcaseRow({ title, category }: { title: string; category: MoviesCateg
   }, [category])
   return (
     <div className="mb-16">
-      <div className="flex items-center justify-between mb-6 px-6 md:px-0">
+      <div className="mb-6 flex items-center justify-between gap-4 px-1 md:px-0">
         <h3 className="text-2xl font-bold">{title}</h3>
         <Link
           href={"/search?cat=" + category}
@@ -754,7 +754,7 @@ function ShowcaseRow({ title, category }: { title: string; category: MoviesCateg
 
 function Showcase() {
   return (
-    <section className="max-w-7xl mx-auto py-20">
+    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
       <ShowcaseRow title="Trending now" category="trending" />
       <ShowcaseRow title="All-time favorites" category="top_rated" />
     </section>
@@ -763,7 +763,7 @@ function Showcase() {
 
 function FAQ() {
   return (
-    <section id="faq" className="py-24 max-w-3xl mx-auto px-6">
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-24">
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold mb-4">Frequently asked questions</h2>
         <p className="text-muted-foreground">Everything you need to know about WatchWise.</p>
@@ -791,9 +791,9 @@ function FAQ() {
 function FinalCTA() {
   const router = useRouter()
   return (
-    <section className="py-24 px-6">
+    <section className="px-4 py-20 sm:px-6 sm:py-24">
       <motion.div
-        className="max-w-5xl mx-auto rounded-[3rem] bg-gradient-to-b from-zinc-900 to-black border border-white/10 p-12 md:p-24 text-center relative overflow-hidden"
+        className="relative mx-auto overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-zinc-900 to-black p-8 text-center md:rounded-[3rem] md:p-24"
         initial={{ opacity: 0, transform: "translateY(32px)" }}
         whileInView={{ opacity: 1, transform: "translateY(0px)" }}
         viewport={{ once: true, margin: "-80px" }}
@@ -844,7 +844,7 @@ export default function MarketingLanding() {
       </main>
 
       <footer className="border-t border-white/5 py-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 text-center sm:px-6 md:flex-row md:text-left">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
             <LogoMagicStroke className="h-7 w-auto opacity-70" />

@@ -71,14 +71,13 @@ export function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl border-b border-border/50">
-      <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-16 max-w-10/12 mx-auto">
-        <Link href={isLoggedIn ? "/home" : "/"} className="flex items-center gap-2">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <Link href={isLoggedIn ? "/home" : "/"} className="flex min-w-0 items-center gap-2">
           <div className="relative">
             <LogoMagicStroke className="h-10 w-auto" />
-            
           </div>
-          <span className="text-xl font-semibold tracking-tight">WatchWise</span>
+          <span className="truncate text-lg font-semibold tracking-tight sm:text-xl">WatchWise</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
@@ -132,12 +131,12 @@ export function Header() {
           </div>
         </nav>
         
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {isLoggedIn && user ? (
-            <div className="relative group  flex items-center gap-2">
+            <div className="relative group flex items-center gap-2">
               <span className="text-sm text-muted-foreground hidden sm:block">Tonight</span>
               <button
-                className="focus:outline-none"
+                className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 onClick={() => router.push("/profile")}
                 aria-label="Go to profile"
               >
@@ -159,11 +158,11 @@ export function Header() {
               
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button asChild variant="ghost">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild>
+              <Button asChild size="sm" className="px-3 sm:px-4">
                 <Link href="/register">Sign up</Link>
               </Button>
             </div>

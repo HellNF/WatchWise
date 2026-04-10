@@ -27,16 +27,16 @@ import {
   type GroupSummary,
   type Profile,
 } from "@/lib/api"
-import { 
-  CheckCircle2, 
-  Copy, 
-  RefreshCcw, 
-  Users, 
-  ClipboardList, 
-  ChevronLeft, 
-  Sparkles, 
-  Play, 
-  Loader2 
+import {
+  CheckCircle2,
+  Copy,
+  RefreshCcw,
+  Users,
+  ClipboardList,
+  ChevronLeft,
+  Sparkles,
+  Play,
+  Loader2,
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -93,10 +93,10 @@ function SkeletonMovieGrid({ count = 6 }: { count?: number }) {
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
+          className="overflow-hidden rounded-2xl border border-white/10 bg-white/5"
         >
           <div className="h-52 w-full animate-pulse bg-white/10" />
-          <div className="p-4 space-y-3">
+          <div className="space-y-3 p-4">
             <div className="h-4 w-3/4 animate-pulse rounded bg-white/10" />
             <div className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
             <div className="flex gap-2">
@@ -338,9 +338,9 @@ export default function GroupDetailPage() {
   const outsiders = recommendations?.outsiders
 
   const bucketTabs = [
-    { key: "top k", label: "Top Pick" },
-    { key: "compatibility", label: "High Match" },
-    { key: "mixmatch", label: "Medium Match" },
+    { key: "top k", label: "Top pick" },
+    { key: "compatibility", label: "High match" },
+    { key: "mixmatch", label: "Balanced picks" },
     { key: "explore", label: "Explore" },
     { key: "outsiders", label: "Outsiders" },
   ] as const
@@ -356,44 +356,37 @@ export default function GroupDetailPage() {
 
   return (
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
-
-      {/* --- BACKGROUND AMBIENCE --- */}
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-teal-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
 
-      {/* --- CONTENT --- */}
       <div className="relative z-10">
         <Header />
 
         <div className="px-4 md:px-6 lg:px-8 max-w-6xl mx-auto pt-8">
-          
-          {/* Back Button */}
           <button
             type="button"
             onClick={() => router.back()}
-            className="group inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors mb-6"
+            className="group mb-6 inline-flex items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
           >
-            <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10">
+            <div className="rounded-full border border-white/10 bg-white/5 p-1.5 transition-colors group-hover:bg-white/10">
               <ChevronLeft className="h-4 w-4" />
             </div>
-            Back to Groups
+            Back to groups
           </button>
 
-          {/* Group Header */}
-          <div className="space-y-6 mb-10">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-              
-              <div className="space-y-2">
-                <Badge variant="outline" className="border-white/10 bg-white/5 text-zinc-400 uppercase tracking-widest text-[10px]">
-                  Group Lobby
+          <div className="mb-10 space-y-6">
+            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+              <div className="space-y-3">
+                <Badge variant="outline" className="border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-zinc-400">
+                  Group lobby
                 </Badge>
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-teal-300 to-amber-400">
+                <h1 className="text-4xl font-semibold tracking-[-0.04em] text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-teal-300 to-amber-300 md:text-5xl">
                   {group?.name ?? "Loading..."}
                 </h1>
                 <div className="flex items-center gap-3 text-sm text-zinc-400">
                   <span className="flex items-center gap-1.5">
-                    <div className={cn("w-2 h-2 rounded-full", allMembersReady ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+                    <div className={cn("h-2 w-2 rounded-full", allMembersReady ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
                     {allMembersReady ? "Ready to choose" : "Gathering preferences"}
                   </span>
                   <span>•</span>
@@ -401,12 +394,11 @@ export default function GroupDetailPage() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex flex-wrap items-center gap-3">
                 {joinCodeVisible && (
-                  <div className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full border border-white/10 bg-zinc-900/60 backdrop-blur">
-                    <span className="text-xs font-mono tracking-wider text-zinc-400">
-                      CODE: <span className="text-white font-bold">{formatJoinCode(group!.joinCode!)}</span>
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900/60 py-1 pl-3 pr-1 backdrop-blur">
+                    <span className="text-xs font-mono tracking-[0.18em] text-zinc-400">
+                      Code: <span className="font-semibold text-white">{formatJoinCode(group!.joinCode!)}</span>
                     </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -419,19 +411,19 @@ export default function GroupDetailPage() {
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{copiedJoinCode ? "Copied" : "Copy Code"}</TooltipContent>
+                      <TooltipContent>{copiedJoinCode ? "Copied" : "Copy code"}</TooltipContent>
                     </Tooltip>
                   </div>
                 )}
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-full border-white/10 bg-zinc-900/60 hover:bg-zinc-800"
                   onClick={handleCopyLink}
                 >
-                  <Copy className="h-3.5 w-3.5 mr-2" />
-                  {copiedLink ? "Copied Link" : "Share Link"}
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  {copiedLink ? "Copied link" : "Share link"}
                 </Button>
               </div>
             </div>
@@ -439,38 +431,39 @@ export default function GroupDetailPage() {
 
           {loading ? (
             <Card className="border-white/10 bg-zinc-900/40 backdrop-blur">
-              <CardContent className="p-12 flex justify-center">
+              <CardContent className="flex justify-center p-12">
                 <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
               </CardContent>
             </Card>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
               {error}
             </div>
           ) : group ? (
             <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
-              
-              {/* MEMBERS CARD */}
-              <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl overflow-hidden">
+              <Card className="overflow-hidden border-white/10 bg-zinc-900/40 backdrop-blur-xl">
                 <CardHeader className="border-b border-white/5 pb-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Users className="h-5 w-5 text-zinc-400" /> Members
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.02em]">
+                      <Users className="h-5 w-5 text-zinc-400" />
+                      Members
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={load} 
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={load}
                         className="h-8 text-xs text-zinc-400 hover:text-white"
                       >
-                        <RefreshCcw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+                        <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
+                        Refresh
                       </Button>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Link href={`/questionnaire`}>
-                            <Button size="sm" className="h-8 rounded-full bg-violet-600 hover:bg-violet-500 text-white border border-white/10 shadow-lg shadow-violet-900/20">
-                              <ClipboardList className="h-3.5 w-3.5 mr-1.5"/> Daily Poll
+                          <Link href="/questionnaire">
+                            <Button size="sm" className="h-8 rounded-full border border-white/10 bg-violet-600 text-white shadow-lg shadow-violet-900/20 hover:bg-violet-500">
+                              <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                              Daily poll
                             </Button>
                           </Link>
                         </TooltipTrigger>
@@ -478,12 +471,12 @@ export default function GroupDetailPage() {
                       </Tooltip>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-emerald-400 pt-1">
+                  <div className="flex items-center gap-2 pt-1 text-sm text-emerald-400">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>{allMembersReady ? STATUS_COPY.allReady : STATUS_COPY.collecting}</span>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="p-6">
                   <div className="flex flex-wrap gap-3">
                     {questionnaire?.members.map((member) => {
@@ -493,40 +486,44 @@ export default function GroupDetailPage() {
                       return (
                         <div
                           key={member.userId}
-                          className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-white/5 bg-white/[0.02] min-w-[100px]"
+                          className="min-w-[110px] rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:border-white/10 hover:bg-white/[0.04]"
                         >
-                          <div className="relative">
-                            <Avatar className="h-14 w-14 border-2 border-zinc-800">
-                              <AvatarImage
-                                src={
-                                  AVATAR_OPTIONS.find(
-                                    (option) => option.id === memberProfiles[member.userId]?.avatar,
-                                  )?.src ?? "/placeholder-user.jpg"
-                                }
-                              />
-                              <AvatarFallback className="bg-zinc-800 text-zinc-400 text-xs">
-                                {(memberProfiles[member.userId]?.username ?? "U").substring(0,2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            {isMemberHost && (
-                              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-zinc-900 rounded-full px-1.5 border border-amber-500/50">
-                                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-wider block leading-none py-0.5">HOST</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="text-center">
-                            <p className="text-sm font-medium text-white leading-tight">
-                              {memberProfiles[member.userId]?.username ?? "User"}
-                              {isYou && <span className="text-zinc-500 ml-1">(You)</span>}
-                            </p>
-                            <p className="text-[10px] text-zinc-500 mt-1">
-                              {member.completed ? (
-                                <span className="text-emerald-400">Ready</span>
-                              ) : (
-                                "Waiting..."
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-14 w-14 border-2 border-zinc-800">
+                                <AvatarImage
+                                  src={
+                                    AVATAR_OPTIONS.find(
+                                      (option) => option.id === memberProfiles[member.userId]?.avatar,
+                                    )?.src ?? "/placeholder-user.jpg"
+                                  }
+                                />
+                                <AvatarFallback className="bg-zinc-800 text-xs text-zinc-400">
+                                  {(memberProfiles[member.userId]?.username ?? "U").substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {isMemberHost && (
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-amber-500/50 bg-zinc-900 px-1.5">
+                                  <span className="block py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-amber-500 leading-none">
+                                    Host
+                                  </span>
+                                </div>
                               )}
-                            </p>
+                            </div>
+
+                            <div className="text-center">
+                              <p className="text-sm font-medium leading-tight text-white">
+                                {memberProfiles[member.userId]?.username ?? "User"}
+                                {isYou && <span className="ml-1 text-zinc-500">(You)</span>}
+                              </p>
+                              <p className="mt-1 text-[10px] text-zinc-500">
+                                {member.completed ? (
+                                  <span className="text-emerald-400">{formatRelativeTime(member.lastCompletedAt)}</span>
+                                ) : (
+                                  STATUS_COPY.waiting
+                                )}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )
@@ -535,103 +532,112 @@ export default function GroupDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* SESSION STATUS CARD */}
-              <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl h-fit">
-                <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent pointer-events-none" />
-                <CardContent className="p-6 space-y-6 relative">
-                  
-                  {/* Status Indicator */}
+              <Card className="h-fit border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent" />
+                <CardContent className="relative space-y-6 p-6">
                   <div>
-                    <h3 className="text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider">Session Status</h3>
+                    <h3 className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-zinc-400">Session status</h3>
                     <div className="flex items-center gap-3">
-                      <div className={cn("w-3 h-3 rounded-full", softstart?.ready ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" : "bg-zinc-600")} />
-                      <span className="text-lg font-semibold text-white">
-                        {softstart?.ready ? "Results Ready" : "Waiting for Input"}
+                      <div className={cn("h-3 w-3 rounded-full", softstart?.ready ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" : "bg-zinc-600")} />
+                      <span className="text-lg font-semibold tracking-[-0.02em] text-white">
+                        {softstart?.ready ? "Results ready" : "Waiting for input"}
                       </span>
                     </div>
+                    <p className="mt-2 text-sm leading-6 text-zinc-400">
+                      {!sessionId
+                        ? isHost
+                          ? "Start a session when the group is ready to compare preferences."
+                          : "Waiting for the host to create the session."
+                        : softstart?.ready
+                          ? "Recommendations are ready below."
+                          : "The room is still collecting enough answers to generate the shortlist."}
+                    </p>
                   </div>
 
-                  {/* Countdown */}
                   {countdown && !allMembersReady && (
-                    <div className="p-4 rounded-xl bg-zinc-950/50 border border-white/5 text-center">
-                      <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Time Remaining</p>
-                      <p className="text-3xl font-mono font-bold text-emerald-400">{countdown}</p>
+                    <div className="rounded-xl border border-white/5 bg-zinc-950/50 p-4 text-center">
+                      <p className="mb-1 text-xs uppercase tracking-[0.22em] text-zinc-500">Time remaining</p>
+                      <p className="font-mono text-3xl font-bold text-emerald-400">{countdown}</p>
                     </div>
                   )}
 
-                  {/* Host Controls */}
                   {!sessionId ? (
                     isHost ? (
-                      <Button 
-                        onClick={handleCreateSession} 
+                      <Button
+                        onClick={handleCreateSession}
                         disabled={sessionCreating}
-                        className="w-full h-12 rounded-xl bg-white text-black hover:bg-zinc-200 font-bold text-base"
+                        className="h-12 w-full rounded-xl bg-white text-base font-semibold text-black hover:bg-zinc-200"
                       >
-                        {sessionCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Play className="mr-2 h-4 w-4 fill-current" /> Start Session</>}
+                        {sessionCreating ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Play className="mr-2 h-4 w-4 fill-current" />
+                            Start session
+                          </>
+                        )}
                       </Button>
                     ) : (
-                      <div className="text-center p-4 rounded-xl bg-zinc-950/30 border border-white/5 text-sm text-zinc-500">
+                      <div className="rounded-xl border border-white/5 bg-zinc-950/30 p-4 text-center text-sm text-zinc-500">
                         Waiting for host to start...
                       </div>
                     )
                   ) : null}
 
-                  {/* Force Start */}
                   {sessionId && isHost && !softstart?.ready && (
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={handleStartAnyway}
                       disabled={starting}
                       className="w-full border-white/10 bg-transparent hover:bg-white/5"
                     >
-                      {starting ? "Starting..." : "Force Start Now"}
+                      {starting ? "Starting..." : "Force start now"}
                     </Button>
                   )}
 
-                  {/* Session ID */}
                   {sessionId && (
-                    <div 
+                    <div
                       onClick={handleCopySessionId}
-                      className="flex items-center justify-between p-3 rounded-lg bg-black/20 border border-white/5 cursor-pointer hover:bg-black/40 transition-colors group"
+                      className="group flex cursor-pointer items-center justify-between rounded-lg border border-white/5 bg-black/20 p-3 transition-colors hover:bg-black/40"
                     >
-                      <span className="text-xs text-zinc-500 font-mono">ID: {sessionId}</span>
-                      <Copy className="h-3.5 w-3.5 text-zinc-600 group-hover:text-white transition-colors" />
+                      <span className="font-mono text-xs text-zinc-500">ID: {sessionId}</span>
+                      <span className="text-xs text-zinc-400 transition-colors group-hover:text-white">
+                        {copiedSession ? "Copied" : "Copy"}
+                      </span>
                     </div>
                   )}
-
                 </CardContent>
               </Card>
-
             </div>
           ) : null}
 
-          {/* RECOMMENDATIONS SECTION */}
-          <section className="mt-16 mb-12">
-            
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <section className="mb-12 mt-16">
+            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-[-0.03em] text-white">
                   <Sparkles className="h-5 w-5 text-amber-400" />
-                  Top Suggestions
+                  Top suggestions
                 </h2>
-                <p className="text-zinc-400 text-sm mt-1">Curated picks based on your group's unique taste.</p>
+                <p className="mt-1 max-w-lg text-sm leading-6 text-zinc-400">
+                  Curated picks based on your group’s latest shared preferences.
+                </p>
               </div>
               <Button variant="outline" size="sm" onClick={handleNewSearch} className="rounded-full border-white/10">
-                <RefreshCcw className="h-3.5 w-3.5 mr-2" /> New Search
+                <RefreshCcw className="mr-2 h-3.5 w-3.5" />
+                New search
               </Button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="mb-8 flex flex-wrap gap-2">
               {bucketTabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveBucket(tab.key)}
                   className={cn(
-                    "px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border",
+                    "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300",
                     activeBucket === tab.key
-                      ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                      : "bg-zinc-900/40 text-zinc-400 border-white/5 hover:border-white/20 hover:text-white"
+                      ? "border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                      : "border-white/5 bg-zinc-900/40 text-zinc-400 hover:border-white/20 hover:text-white",
                   )}
                 >
                   {tab.label}
@@ -639,73 +645,65 @@ export default function GroupDetailPage() {
               ))}
             </div>
 
-            {/* Empty States */}
             {!sessionId && (
-              <div className="text-center py-20 rounded-3xl border border-dashed border-white/10 bg-white/[0.02]">
+              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] py-20 text-center">
                 <p className="text-zinc-500">Start a session to unlock recommendations.</p>
               </div>
             )}
 
             {sessionId && !softstart?.ready && (
-              <div className="text-center py-20 rounded-3xl border border-dashed border-white/10 bg-white/[0.02]">
-                <Loader2 className="h-8 w-8 animate-spin text-zinc-600 mx-auto mb-4" />
+              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] py-20 text-center">
+                <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-zinc-600" />
                 <p className="text-zinc-500">Analyzing group preferences...</p>
               </div>
             )}
 
-            {sessionId && softstart?.ready && !recommendations && (
-               <SkeletonMovieGrid count={3} />
-            )}
+            {sessionId && softstart?.ready && !recommendations && <SkeletonMovieGrid count={3} />}
 
-            {/* Results */}
             {recommendations && (
               <div className="space-y-10">
-                
-                {/* Spotlight Card (Top Pick) */}
                 {activeBucket === "top k" && recommendations.recommended && (
-                  <div className="relative group">
-                    <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-violet-600 to-amber-500 opacity-20 blur-xl group-hover:opacity-30 transition-opacity duration-500" />
-                    <Card className="relative border-white/10 bg-zinc-900/80 backdrop-blur-xl overflow-hidden">
-                      <CardContent className="p-0 flex flex-col md:flex-row">
-                        {/* Poster */}
-                        <div className="w-full md:w-48 h-64 md:h-auto relative shrink-0">
+                  <div className="group relative">
+                    <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-violet-600 to-amber-500 opacity-20 blur-xl transition-opacity duration-500 group-hover:opacity-30" />
+                    <Card className="relative overflow-hidden border-white/10 bg-zinc-900/80 backdrop-blur-xl">
+                      <CardContent className="flex flex-col p-0 md:flex-row">
+                        <div className="relative h-64 w-full shrink-0 md:h-auto md:w-48">
                           <img
                             src={recommendations.recommended.movie.posterPath || "/placeholder-movie.jpg"}
                             alt={recommendations.recommended.movie.title}
-                            className="w-full h-full object-cover"
+                            className="h-full w-full object-cover"
                           />
-                          <div className="absolute top-3 left-3 bg-amber-500 text-black text-xs font-bold px-2 py-1 rounded shadow-lg">
+                          <div className="absolute left-3 top-3 rounded bg-amber-500 px-2 py-1 text-xs font-bold text-black shadow-lg">
                             #1 MATCH
                           </div>
                         </div>
 
-                        {/* Info */}
-                        <div className="p-6 md:p-8 flex flex-col justify-center flex-1">
-                          <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex flex-1 flex-col justify-center p-6 md:p-8">
+                          <div className="mb-2 flex items-start justify-between gap-4">
                             <div>
-                              <h3 className="text-2xl md:text-3xl font-bold text-white mb-1">
+                              <h3 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-white md:text-3xl">
                                 {recommendations.recommended.movie.title}
                               </h3>
-                              <p className="text-zinc-400">
-                                {recommendations.recommended.movie.year} • {(recommendations.recommended.compatibility * 100).toFixed(0)}% Match
+                              <p className="text-sm text-zinc-400">
+                                {recommendations.recommended.movie.year} • {(recommendations.recommended.compatibility * 100).toFixed(0)}% match
                               </p>
                             </div>
                             <div className="hidden md:block">
-                                <MovieQuickActions movieId={normalizeMovieId(recommendations.recommended.movie.movieId)} />
+                              <MovieQuickActions movieId={normalizeMovieId(recommendations.recommended.movie.movieId)} />
                             </div>
                           </div>
-                          
-                          <p className="text-zinc-300 text-sm leading-relaxed mb-6 max-w-2xl">
-                             {recommendations.recommended.reasons?.[0] ?? "This movie perfectly balances the group's taste profile."}
-                             {recommendations.recommended.reasons?.length > 1 && (
-                               <span className="block mt-2 text-violet-400 text-xs font-semibold">
-                                 + {recommendations.recommended.reasons.length - 1} more reasons
-                               </span>
-                             )}
+
+                          <p className="mb-6 max-w-2xl text-sm leading-7 text-zinc-300">
+                            {recommendations.recommended.reasons?.[0] ?? "This movie best balances the group’s taste profile."}
+                            {recommendations.recommended.reasons?.length > 1 && (
+                              <span className="mt-2 block text-xs font-semibold text-violet-400">
+                                + {recommendations.recommended.reasons.length - 1} more reasons
+                              </span>
+                            )}
                           </p>
-                          
-                          <div className="md:hidden mt-auto">
-                             <MovieQuickActions movieId={normalizeMovieId(recommendations.recommended.movie.movieId)} />
+
+                          <div className="mt-auto md:hidden">
+                            <MovieQuickActions movieId={normalizeMovieId(recommendations.recommended.movie.movieId)} />
                           </div>
                         </div>
                       </CardContent>
@@ -713,7 +711,6 @@ export default function GroupDetailPage() {
                   </div>
                 )}
 
-                {/* Grid */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {bucketEntries?.slice(0, 12).map((entry) => (
                     <MovieCard
@@ -725,12 +722,16 @@ export default function GroupDetailPage() {
                       rating={entry.movie.voteAverage}
                       reason={entry.reasons?.[0]}
                       meta={
-                         <div className="flex items-center gap-2">
-                           <Badge variant="secondary" className="bg-white/10 hover:bg-white/20 text-zinc-300 border-0">
-                              {(entry.compatibility * 100).toFixed(0)}% Match
-                           </Badge>
-                           {entry.outsider && <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">Outsider</Badge>}
-                         </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="border-0 bg-white/10 text-zinc-300 hover:bg-white/20">
+                            {(entry.compatibility * 100).toFixed(0)}% match
+                          </Badge>
+                          {entry.outsider && (
+                            <Badge variant="outline" className="border-amber-500/30 text-[10px] text-amber-500">
+                              Outsider
+                            </Badge>
+                          )}
+                        </div>
                       }
                     />
                   ))}
@@ -738,7 +739,6 @@ export default function GroupDetailPage() {
               </div>
             )}
           </section>
-
         </div>
         <BottomNav />
       </div>

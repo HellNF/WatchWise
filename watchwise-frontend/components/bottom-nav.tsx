@@ -17,9 +17,9 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-4 left-4 right-4 z-50 ">
-      <div className="liquid-glass rounded-3xl w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl mx-auto backdrop-blur-sm shadow-lg">
-        <div className="flex items-center justify-around h-14 sm:h-16 md:h-18 px-2 sm:px-3 md:px-4">
+    <nav className="fixed bottom-3 left-3 right-3 z-50 sm:bottom-4 sm:left-4 sm:right-4">
+      <div className="liquid-glass mx-auto w-full max-w-xl rounded-[1.75rem] px-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1.5 shadow-lg backdrop-blur-sm">
+        <div className="grid h-16 grid-cols-5 items-center gap-1 sm:h-[4.25rem] sm:gap-2 sm:px-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
@@ -29,7 +29,7 @@ export function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative flex flex-col items-center gap-0.5 py-1.5 sm:py-2 px-3 sm:px-4 md:px-5 rounded-2xl transition-all duration-300"
+                className="relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition-all duration-300"
               >
                 {/* Active pill background */}
                 {isActive && (
@@ -52,7 +52,7 @@ export function BottomNav() {
                   />
                 </div>
                 <span
-                  className={`relative z-10 text-[9px] sm:text-[10px] md:text-xs font-medium transition-colors duration-300 ${
+                  className={`relative z-10 max-w-full truncate px-1 text-[10px] font-medium transition-colors duration-300 sm:text-[11px] ${
                     isActive
                       ? isForYou
                         ? "text-discovery drop-shadow-[0_0_10px_rgba(250,204,21,0.65)]"

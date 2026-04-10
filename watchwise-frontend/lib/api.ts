@@ -603,6 +603,11 @@ export interface PersonCreditItem {
   job?: string
 }
 
+export interface PersonHighlight {
+  label: string
+  source: "wikidata_award" | "tmdb_fact"
+}
+
 export interface PersonFullDetails {
   id: number
   name: string
@@ -616,6 +621,7 @@ export interface PersonFullDetails {
   knownForDepartment?: string
   imdbId?: string
   instagramId?: string
+  heroHighlights: PersonHighlight[]
   images: Array<{ filePath: string; width: number; height: number }>
   movieCredits: PersonCreditItem[]
   tvCredits: PersonCreditItem[]

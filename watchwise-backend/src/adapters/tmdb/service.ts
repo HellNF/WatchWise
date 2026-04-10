@@ -504,6 +504,11 @@ export interface PersonCreditItem {
   job?: string;
 }
 
+export interface PersonHighlight {
+  label: string;
+  source: "wikidata_award" | "tmdb_fact";
+}
+
 export interface PersonFullDetails {
   id: number;
   name: string;
@@ -517,6 +522,7 @@ export interface PersonFullDetails {
   knownForDepartment?: string;
   imdbId?: string;
   instagramId?: string;
+  heroHighlights: PersonHighlight[];
   images: Array<{ filePath: string; width: number; height: number }>;
   movieCredits: PersonCreditItem[];
   tvCredits: PersonCreditItem[];
@@ -546,6 +552,150 @@ function mapCreditItem(item: TMDBPersonCreditItem): PersonCreditItem {
     character: item.character || undefined,
     job: item.job || undefined,
   };
+}
+
+type WikidataSparqlResponse = {
+  results?: {
+    bindings?: Array<{
+      awardLabel?: { value?: string };
+      count?: { value?: string };
+    }>;
+  };
+};
+
+const WIKIDATA_SPARQL_URL = "https://query.wikidata.org/sparql";
+
+const AWARD_PRIORITY_RULES: Array<{ pattern: RegExp; score: number }> = [
+  { pattern: /\bacademy award\b|\boscar\b/i, score: 120 },
+  { pattern: /\bgolden globe\b/i, score: 110 },
+  { pattern: /\bprimetime emmy\b|\bemmy\b/i, score: 105 },
+  { pattern: /\bbafta\b/i, score: 102 },
+  { pattern: /\bpalme d'?or\b|\bcannes\b/i, score: 98 },
+  { pattern: /\bgolden lion\b|\bvenice\b/i, score: 94 },
+  { pattern: /\bgolden bear\b|\bsilver bear\b|\bberlin\b/i, score: 92 },
+  { pattern: /\bscreen actors guild\b|\bsag award\b/i, score: 90 },
+  { pattern: /\bcritics'? choice\b/i, score: 86 },
+  { pattern: /\bcesar award\b/i, score: 82 },
+  { pattern: /\bsaturn award\b/i, score: 76 },
+];
+
+function escapeSparqlString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function scoreAwardLabel(label: string, count: number): number {
+  const normalized = label.trim();
+  const matchedRule = AWARD_PRIORITY_RULES.find((rule) => rule.pattern.test(normalized));
+  return (matchedRule?.score ?? 20) + Math.min(count, 6) * 6;
+}
+
+function formatAwardHighlight(label: string, count: number): string {
+  return count > 1 ? `${count}x ${label} recipient` : `${label} recipient`;
+}
+
+async function fetchWikidataAwardHighlights(imdbId?: string): Promise<PersonHighlight[]> {
+  if (!imdbId) return [];
+
+  const cacheKey = `wikidata:person-awards:${imdbId}`;
+  const cached = getCached(cacheKey) as PersonHighlight[] | undefined;
+  if (cached) return cached;
+
+  const query = `
+    SELECT ?awardLabel (COUNT(?award) AS ?count) WHERE {
+      ?person wdt:P345 "${escapeSparqlString(imdbId)}" .
+      ?person p:P166 ?awardStatement .
+      ?awardStatement ps:P166 ?award .
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    }
+    GROUP BY ?awardLabel
+    ORDER BY DESC(?count)
+    LIMIT 12
+  `;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  try {
+    const response = await fetch(
+      `${WIKIDATA_SPARQL_URL}?format=json&query=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Accept: "application/sparql-results+json",
+          "User-Agent": "WatchWise/1.0 (person page enrichment)",
+        },
+        signal: controller.signal,
+      }
+    );
+
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as WikidataSparqlResponse;
+    const highlights = (data.results?.bindings ?? [])
+      .map((binding) => {
+        const label = binding.awardLabel?.value?.trim();
+        const count = Number(binding.count?.value ?? 0);
+        if (!label || !Number.isFinite(count) || count < 1) return null;
+        return { label, count, score: scoreAwardLabel(label, count) };
+      })
+      .filter((item): item is { label: string; count: number; score: number } => Boolean(item))
+      .sort((a, b) => b.score - a.score || b.count - a.count || a.label.localeCompare(b.label))
+      .slice(0, 3)
+      .map((item) => ({
+        label: formatAwardHighlight(item.label, item.count),
+        source: "wikidata_award" as const,
+      }));
+
+    setCached(cacheKey, highlights);
+    return highlights;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function buildFallbackPersonHighlights(
+  knownForDepartment: string | undefined,
+  movieCredits: PersonCreditItem[],
+  tvCredits: PersonCreditItem[]
+): PersonHighlight[] {
+  const highlights: PersonHighlight[] = [];
+  const totalCredits = movieCredits.length + tvCredits.length;
+  const mostPopularCredit = [...movieCredits, ...tvCredits]
+    .sort((a, b) => b.popularity - a.popularity)[0];
+
+  if (mostPopularCredit?.title) {
+    highlights.push({
+      label: `Known for ${mostPopularCredit.title}`,
+      source: "tmdb_fact",
+    });
+  }
+
+  if (movieCredits.length > 0 && tvCredits.length > 0) {
+    highlights.push({
+      label: `${totalCredits} credited titles across film and TV`,
+      source: "tmdb_fact",
+    });
+  } else if (movieCredits.length > 0) {
+    highlights.push({
+      label: `${movieCredits.length} movie credits`,
+      source: "tmdb_fact",
+    });
+  } else if (tvCredits.length > 0) {
+    highlights.push({
+      label: `${tvCredits.length} TV credits`,
+      source: "tmdb_fact",
+    });
+  }
+
+  if (knownForDepartment) {
+    highlights.push({
+      label: `Known for ${knownForDepartment.toLowerCase()}`,
+      source: "tmdb_fact",
+    });
+  }
+
+  return highlights.slice(0, 3);
 }
 
 export async function fetchPersonFullDetails(personId: number): Promise<PersonFullDetails> {
@@ -582,6 +732,21 @@ export async function fetchPersonFullDetails(personId: number): Promise<PersonFu
     [...tvCast, ...tvCrew].sort((a, b) => b.popularity - a.popularity)
   );
 
+  const awardHighlights = await fetchWikidataAwardHighlights(
+    data.external_ids?.imdb_id || undefined
+  );
+  const heroHighlights = [
+    ...awardHighlights,
+    ...buildFallbackPersonHighlights(
+      data.known_for_department || undefined,
+      movieCredits,
+      tvCredits
+    ),
+  ].filter(
+    (highlight, index, array) =>
+      array.findIndex((candidate) => candidate.label === highlight.label) === index
+  ).slice(0, 3);
+
   const result: PersonFullDetails = {
     id: data.id,
     name: data.name,
@@ -597,6 +762,7 @@ export async function fetchPersonFullDetails(personId: number): Promise<PersonFu
     knownForDepartment: data.known_for_department || undefined,
     imdbId: data.external_ids?.imdb_id || undefined,
     instagramId: data.external_ids?.instagram_id || undefined,
+    heroHighlights,
     images: (data.images?.profiles ?? []).slice(0, 6).map((p) => ({
       filePath: `https://image.tmdb.org/t/p/w185${p.file_path}`,
       width: p.width,
