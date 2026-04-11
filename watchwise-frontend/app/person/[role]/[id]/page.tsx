@@ -557,12 +557,35 @@ export default function PersonMoviesPage() {
                       {isDirector ? "Director" : "Actor"}
                     </Badge>
                     
-                    <div>
-                      <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl lg:leading-tight">
-                        {details.name}
-                      </h1>
-                      {heroSubtitle && (
-                        <p className="mt-2 text-base font-medium text-zinc-400">{heroSubtitle}</p>
+                    <div className="flex items-start justify-between gap-4 lg:block">
+                      <div className="min-w-0">
+                        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl lg:leading-tight">
+                          {details.name}
+                        </h1>
+                        {heroSubtitle && (
+                          <p className="mt-2 text-base font-medium text-zinc-400">{heroSubtitle}</p>
+                        )}
+                      </div>
+
+                      {heroImage && (
+                        <button
+                          type="button"
+                          onClick={() => setPersonImageLightboxIndex(0)}
+                          className="relative h-24 w-20 shrink-0 overflow-hidden lg:hidden"
+                          aria-label={`Open ${details.name} photo`}
+                        >
+                          <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-t-full rounded-b-2xl border border-violet-500/20 bg-violet-500/5 backdrop-blur-xl" />
+                          <div className="absolute inset-0 bg-violet-600/25 blur-[16px]" />
+                          <Image
+                            src={heroImage}
+                            alt={details.name}
+                            fill
+                            priority
+                            sizes="80px"
+                            className="relative rounded-t-full rounded-b-2xl object-cover object-top shadow-xl ring-1 ring-white/20 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 rounded-t-full rounded-b-2xl bg-black/0 transition-colors duration-300 hover:bg-black/10" />
+                        </button>
                       )}
                     </div>
 
@@ -619,28 +642,6 @@ export default function PersonMoviesPage() {
                       )}
                     </div>
                   </div>
-
-                  {/* Foto Mobile a forma di Arco */}
-                  {heroImage && (
-                    <button
-                      type="button"
-                      onClick={() => setPersonImageLightboxIndex(0)}
-                      className="relative h-32 w-24 shrink-0 overflow-hidden lg:hidden"
-                      aria-label={`Open ${details.name} photo`}
-                    >
-                      <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-t-full rounded-b-2xl border border-violet-500/20 bg-violet-500/5 backdrop-blur-xl" />
-                      <div className="absolute inset-0 bg-violet-600/30 blur-[20px]" />
-                      <Image
-                        src={heroImage}
-                        alt={details.name}
-                        fill
-                        priority
-                        sizes="96px"
-                        className="relative rounded-t-full rounded-b-2xl object-cover object-top shadow-xl ring-1 ring-white/20 transition-transform duration-500 hover:scale-[1.03]"
-                      />
-                      <div className="absolute inset-0 rounded-t-full rounded-b-2xl bg-black/0 transition-colors duration-300 hover:bg-black/10" />
-                    </button>
-                  )}
 
                   <div>
                     <Button
@@ -730,16 +731,20 @@ export default function PersonMoviesPage() {
                       <p className="text-xs text-zinc-500">Tap a poster to open the film details</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-rows-2 lg:gap-4 auto-rows-[150px] lg:auto-rows-[165px]">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[165px] lg:gap-4">
                       {knownFor.map((movie, index) => {
-                        const isFeatured = index === 0;
+                        const isFeatured = index === 0
                         return (
                           <IconicMovieCard 
                             key={movie.id} 
                             movie={movie} 
                             isFeatured={isFeatured}
                             href={`/movie/${encodeURIComponent(String(movie.id))}`}
-                            className={isFeatured ? "col-span-2 row-span-2" : "col-span-1 row-span-1"}
+                            className={
+                              isFeatured
+                                ? "col-span-2 aspect-[2/3] md:col-span-2 md:row-span-2 md:aspect-auto"
+                                : "aspect-[2/3] md:aspect-auto"
+                            }
                           />
                         )
                       })}

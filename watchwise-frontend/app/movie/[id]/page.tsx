@@ -509,13 +509,13 @@ export default function MovieDetailsPage() {
                         <CarouselItem className="pl-4 basis-[200px] md:basis-[240px]">
                           <Link href={`/person/director/${details.directorId}?name=${encodeURIComponent(details.director)}`} className="group block h-full">
                             <div className="h-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1">
-                              <div className="mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-amber-500/50 transition-colors w-24 h-24 mx-auto">
+                              <div className="relative mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-amber-500/50 transition-colors w-24 h-24 mx-auto">
                                 <Image
                                   src={details.directorImage || "/placeholder.svg"}
                                   alt={details.director}
                                   fill
                                   sizes="96px"
-                                  className="object-cover"
+                                  className="object-cover object-top"
                                 />
                               </div>
                               <div className="text-center">
@@ -532,13 +532,13 @@ export default function MovieDetailsPage() {
                         <CarouselItem key={actor.id} className="pl-4 basis-[160px] md:basis-[190px]">
                           <Link href={`/person/actor/${actor.id}?name=${encodeURIComponent(actor.name)}`} className="group block h-full">
                             <div className="h-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1">
-                              <div className="mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-white/20 transition-colors w-20 h-20 mx-auto grayscale group-hover:grayscale-0">
+                              <div className="relative mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-white/20 transition-colors w-20 h-20 mx-auto grayscale group-hover:grayscale-0">
                                 <Image
                                   src={actor.image || "/placeholder.svg"}
                                   alt={actor.name}
                                   fill
                                   sizes="80px"
-                                  className="object-cover"
+                                  className="object-cover object-top"
                                 />
                               </div>
                               <div className="text-center">
