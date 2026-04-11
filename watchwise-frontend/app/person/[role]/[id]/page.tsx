@@ -40,10 +40,6 @@ import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1]
-const deferredSectionStyle = {
-  contentVisibility: "auto" as const,
-  containIntrinsicSize: "900px",
-}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
@@ -319,7 +315,7 @@ function IconicMovieCard({
     <motion.div
       whileHover={{ scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={`group relative ${className}`}
+      className={`group relative h-full ${className}`}
     >
       <div className="relative flex h-full w-full cursor-pointer select-none flex-col overflow-hidden rounded-[1.5rem] bg-zinc-900 text-left shadow-lg ring-1 ring-white/10 transition-all hover:ring-amber-500/50 hover:shadow-[0_0_25px_rgba(229,177,17,0.25)]">
         <Link href={href} className="absolute inset-0 z-10" aria-label={`Open ${movie.title} details`} />
@@ -686,14 +682,13 @@ export default function PersonMoviesPage() {
 
             {/* MAIN CONTENT GRID */}
             <motion.div
-              className="mb-12 grid gap-8 xl:grid-cols-[1fr_340px]"
+              className="mb-12 grid gap-8 xl:grid-cols-[1fr_340px] xl:items-stretch"
               variants={fadeUp}
               initial="hidden"
               animate="show"
               custom={0.1}
-              style={deferredSectionStyle}
             >
-              <div className="space-y-8">
+              <div className="flex h-full flex-col gap-8">
                 {/* BIOGRAPHY */}
                 {details.biography && (
                   <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 sm:p-8">
@@ -725,13 +720,14 @@ export default function PersonMoviesPage() {
 
                 {/* KNOWN FOR GRID - Bento Box Asimmetrico allineato con la sidebar */}
                 {knownFor.length > 0 && (
-                  <section style={deferredSectionStyle}>
+                  <section className="flex flex-1 flex-col xl:min-h-0">
                     <div className="mb-4 flex items-center justify-between">
                       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Curated Showcase</h2>
                       <p className="text-xs text-zinc-500">Tap a poster to open the film details</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[165px] lg:gap-4">
+                    <div className="flex-1 overflow-visible px-4 py-3 -mx-4 -my-3">
+                      <div className="grid xl:h-full grid-cols-2 gap-3 md:grid-cols-4 md:auto-rows-[165px] md:grid-flow-dense lg:gap-4 xl:grid-rows-2">
                       {knownFor.map((movie, index) => {
                         const isFeatured = index === 0
                         return (
@@ -742,22 +738,23 @@ export default function PersonMoviesPage() {
                             href={`/movie/${encodeURIComponent(String(movie.id))}`}
                             className={
                               isFeatured
-                                ? "col-span-2 aspect-[2/3] md:col-span-2 md:row-span-2 md:aspect-auto"
-                                : "aspect-[2/3] md:aspect-auto"
+                                ? "col-span-2 aspect-[2/3] md:col-span-2 md:row-span-2 md:h-full md:aspect-auto"
+                                : "aspect-[2/3] md:h-full md:aspect-auto"
                             }
                           />
                         )
                       })}
+                      </div>
                     </div>
                   </section>
                 )}
               </div>
 
               {/* SIDEBAR */}
-              <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+              <aside className="flex flex-col gap-6 xl:sticky xl:top-24 xl:h-full">
                 {/* GALLERY THUMBNAILS */}
                 {details.images.length > 0 && (
-                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6" style={deferredSectionStyle}>
+                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6">
                     <div className="mb-5 flex items-end justify-between">
                       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Gallery</h2>
                       <button onClick={() => setPersonImageLightboxIndex(0)} className="text-xs font-medium text-violet-400 hover:text-violet-300">
@@ -789,7 +786,7 @@ export default function PersonMoviesPage() {
 
                 {/* FACTS */}
                 {profileFacts.length > 0 && (
-                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6" style={deferredSectionStyle}>
+                  <section className="xl:mt-auto rounded-4xl border border-white/5 bg-white/2 p-6">
                     <h2 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">At a glance</h2>
                     <div className="space-y-4">
                       {profileFacts.map((fact) => (
@@ -829,7 +826,6 @@ export default function PersonMoviesPage() {
               initial="hidden"
               animate="show"
               custom={0.2}
-              style={deferredSectionStyle}
             >
               <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
@@ -880,23 +876,25 @@ export default function PersonMoviesPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {displayedCredits.map((item) =>
-                      activeTab === "tv" ? (
-                        <TvShowCard key={`tv-${item.id}`} item={item} />
-                      ) : (
-                        <MovieCard
-                          key={`movie-${item.id}`}
-                          id={String(item.id)}
-                          title={item.title}
-                          poster={item.posterPath}
-                          year={item.year}
-                          rating={item.voteAverage}
-                        >
-                          <MovieQuickActions movieId={String(item.id)} />
-                        </MovieCard>
-                      )
-                    )}
+                  <div className="overflow-visible px-4 py-4 -mx-4 -my-4 w-full">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                      {displayedCredits.map((item) =>
+                        activeTab === "tv" ? (
+                          <TvShowCard key={`tv-${item.id}`} item={item} />
+                        ) : (
+                          <MovieCard
+                            key={`movie-${item.id}`}
+                            id={String(item.id)}
+                            title={item.title}
+                            poster={item.posterPath}
+                            year={item.year}
+                            rating={item.voteAverage}
+                          >
+                            <MovieQuickActions movieId={String(item.id)} />
+                          </MovieCard>
+                        )
+                      )}
+                    </div>
                   </div>
 
                   <div ref={sentinelRef} className="h-1" aria-hidden />
