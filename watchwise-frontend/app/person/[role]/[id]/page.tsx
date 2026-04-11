@@ -473,7 +473,7 @@ export default function PersonMoviesPage() {
     <main className="relative min-h-dvh overflow-x-hidden bg-[#07090E] pb-28 text-foreground selection:bg-violet-500/30">
       <Header />
 
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[url('/noise.svg')] opacity-[0.15] mix-blend-overlay" />
       <div className="pointer-events-none fixed top-[-10%] left-[-10%] z-0 h-[600px] w-[600px] animate-pulse rounded-full bg-violet-600/15 blur-[150px] mix-blend-screen duration-[8000ms]" />
       <div className="pointer-events-none fixed top-[20%] right-[-5%] z-0 h-[500px] w-[500px] animate-pulse rounded-full bg-[#e5b111]/10 blur-[120px] mix-blend-screen duration-[6000ms]" />
       <div className="pointer-events-none fixed bottom-[-10%] left-[20%] z-0 h-[400px] w-[400px] rounded-full bg-pink-500/10 blur-[130px] mix-blend-screen" />

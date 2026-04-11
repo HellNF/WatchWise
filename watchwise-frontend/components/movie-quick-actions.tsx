@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
 const ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let cachedLists: UserList[] | null = null
+let cachedListsPromise: Promise<UserList[]> | null = null
 
 export function MovieQuickActions({
   movieId,
@@ -49,12 +51,21 @@ export function MovieQuickActions({
     let active = true
 
     const load = async () => {
+      if (cachedLists) {
+        setLists(cachedLists)
+        setListError(null)
+        return
+      }
+
       setListLoading(true)
       setListError(null)
       try {
-        const data = await getLists()
+        cachedListsPromise ??= getLists()
+        const data = await cachedListsPromise
+        cachedLists = data
         if (active) setLists(data)
       } catch {
+        cachedListsPromise = null
         if (active) setListError("Unable to load lists.")
       } finally {
         if (active) setListLoading(false)

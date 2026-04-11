@@ -67,7 +67,7 @@ export default function RegisterPage() {
     <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-zinc-950 text-foreground selection:bg-amber-500/30">
       
       {/* --- BACKGROUND AMBIENCE --- */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
       
       {/* Gradient Orbs */}
       <div className="absolute top-[-10%] right-[-10%] w-[700px] h-[700px] bg-violet-600/10 blur-[120px] rounded-full opacity-30" />

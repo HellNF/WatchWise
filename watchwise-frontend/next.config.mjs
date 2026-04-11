@@ -22,8 +22,7 @@ const ContentSecurityPolicy = `
   style-src   'self' 'unsafe-inline';
   img-src     'self' blob: data:
               https://image.tmdb.org
-              https://*.supabase.co
-              https://grainy-gradients.vercel.app;
+              https://*.supabase.co;
   font-src    'self';
   connect-src 'self'
               ${API_ORIGIN}
@@ -57,7 +56,17 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "image.tmdb.org",
+      },
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
+    ],
   },
   async headers() {
     return [

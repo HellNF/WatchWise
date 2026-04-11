@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -215,7 +216,7 @@ export default function MovieDetailsPage() {
       <Header />
 
       {/* --- DYNAMIC BACKGROUND AMBIENCE --- */}
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       
       {/* Primary Glow (from poster) */}
       <div 
@@ -254,10 +255,13 @@ export default function MovieDetailsPage() {
               {/* Left Column: Poster */}
               <div className="space-y-6">
                 <div className="relative aspect-[2/3] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
-                  <img
+                  <Image
                     src={details.posterPath || "/placeholder.svg"}
                     alt={details.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 350px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   {/* Poster inner glow */}
                   <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-3xl pointer-events-none" />

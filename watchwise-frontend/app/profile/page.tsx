@@ -133,7 +133,7 @@ function SuggestionDropdown({
               onClick={() => onPick(s.name)}
             >
               <img
-                src={s.image || "/placeholder-user.jpg"}
+                src={s.image || "/placeholder.svg"}
                 alt={s.name}
                 className="h-8 w-8 rounded-full object-cover border border-white/10"
               />
@@ -168,7 +168,7 @@ function PersonGrid({
           className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-2 pr-8 shadow-sm transition hover:bg-white/[0.05] hover:border-white/10"
         >
           <img
-            src={p.image || "/placeholder-user.jpg"}
+            src={p.image || "/placeholder.svg"}
             alt={p.name}
             className="h-10 w-10 rounded-full object-cover border border-white/10"
           />
@@ -463,8 +463,8 @@ export default function ProfilePage() {
   }
 
   const avatarSrc = profile?.avatar
-    ? AVATAR_OPTIONS.find((option) => option.id === profile.avatar)?.src ?? "/placeholder-user.jpg"
-    : "/placeholder-user.jpg"
+    ? AVATAR_OPTIONS.find((option) => option.id === profile.avatar)?.src ?? AVATAR_OPTIONS[0].src
+    : AVATAR_OPTIONS[0].src
 
   const initials = profile?.username
     ? profile.username
@@ -496,7 +496,7 @@ export default function ProfilePage() {
       <Header />
 
       {/* --- BACKGROUND AMBIENCE --- */}
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
 
@@ -544,7 +544,7 @@ export default function ProfilePage() {
               <CardContent className="px-6 pb-8 -mt-16 flex flex-col items-center text-center">
                 <div className="relative mb-4 group">
                   <Avatar className="w-32 h-32 border-4 border-zinc-900 shadow-xl">
-                    <AvatarImage src={avatarSrc} />
+                    <AvatarImage src={avatarSrc} alt={profile?.username ?? "Profile"} loading="eager" />
                     <AvatarFallback className="text-3xl font-bold bg-zinc-800 text-zinc-400">
                       {initials}
                     </AvatarFallback>

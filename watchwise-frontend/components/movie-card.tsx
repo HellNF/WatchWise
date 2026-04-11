@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Sparkles, Star } from "lucide-react"
@@ -42,10 +43,12 @@ export function MovieCard({
           href={href}
           className="relative block aspect-[2/3] rounded-xl overflow-hidden"
         >
-          <img
+          <Image
             src={poster || "/placeholder.svg"}
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 150px, (max-width: 768px) 180px, 220px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {isDiscovery && (
             <Badge className="absolute top-2 left-2 bg-discovery/90 text-discovery-foreground text-[10px] px-1.5 py-0.5 gap-0.5">

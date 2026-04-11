@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -73,7 +74,10 @@ function CategoryRow({
   if (!list.length) return null
 
   return (
-    <section className="py-10 relative">
+    <section
+      className="py-10 relative"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "900px" }}
+    >
       <div className="flex flex-col gap-6 px-4 md:px-6 lg:px-8 max-w-[1400px] mx-auto">
         
         {/* Row Header */}
@@ -169,7 +173,7 @@ export function HomePageClient({
     <div className="min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30">
       
       {/* --- BACKGROUND AMBIENCE --- */}
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />
       <div className="fixed bottom-0 right-0 w-[600px] h-[600px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
 
@@ -179,11 +183,14 @@ export function HomePageClient({
         {/* Background Image with Fade */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-zinc-950 transition-opacity duration-700" /> 
-          <img
+          <Image
             key={activeHero?.id} // Key forces fade animation on change
             src={heroBackdrop}
             alt={activeHero?.title ?? "Hero"}
-            className="h-full w-full object-cover object-top animate-in fade-in zoom-in-105 duration-1000"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-top animate-in fade-in zoom-in-105 duration-1000"
           />
           {/* Complex Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
@@ -271,10 +278,12 @@ export function HomePageClient({
                             : "border-transparent opacity-50 hover:opacity-80"
                         )}
                       >
-                        <img
+                        <Image
                           src={movie.backdrop || movie.poster || "/placeholder.svg"}
                           alt={movie.title}
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="(max-width: 1024px) 20vw, 12vw"
+                          className="object-cover"
                         />
                         <div className="absolute inset-0 bg-black/20" />
                       </button>

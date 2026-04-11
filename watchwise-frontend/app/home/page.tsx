@@ -23,6 +23,9 @@ import {
 
 // --- HELPERS ---
 
+const HERO_ITEM_LIMIT = 6
+const HERO_ENRICH_LIMIT = 3
+
 const normalizeMovieId = (value: string) =>
   value.includes(":") ? value.split(":").pop() ?? value : value
 
@@ -138,15 +141,26 @@ export default async function HomePage() {
       safeCategory("now_playing"),
       safeCategory("upcoming"),
       safeRecommendations(),
-      safeHeroSource(10), // Fetch top 10 for Hero Carousel
+      safeHeroSource(HERO_ITEM_LIMIT),
     ])
 
   // Process Hero Items (Fetch Backdrops & Details)
-  const heroBase = heroSource.list.slice(0, 10)
+  const heroBase = heroSource.list.slice(0, HERO_ITEM_LIMIT)
   const heroItems: HomeHeroItem[] = await Promise.all(
     heroBase.map(async (item, index) => {
       let overview: string | undefined
       let backdrop: string | undefined
+
+      if (index >= HERO_ENRICH_LIMIT) {
+        return {
+          id: normalizeMovieId(item.movieId),
+          title: item.title,
+          poster: item.posterPath,
+          year: item.year,
+          rating: Number.isFinite(item.voteAverage) ? item.voteAverage : undefined,
+          badge: index === 0 ? "Featured" : heroSource.badge,
+        }
+      }
 
       try {
         const [detailsResult, imagesResult] = await Promise.allSettled([
@@ -234,7 +248,7 @@ export default async function HomePage() {
     <main className="relative min-h-screen bg-zinc-950 text-foreground selection:bg-violet-500/30 pb-28">
       
       {/* --- BACKGROUND AMBIENCE (Consistent with Auth Pages) --- */}
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
+      <div className="fixed inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay z-0" />
       
       {/* Subtle ambient orbs for depth */}
       <div className="fixed top-0 left-0 w-[800px] h-[800px] bg-violet-600/10 blur-[150px] rounded-full opacity-40 pointer-events-none z-0" />

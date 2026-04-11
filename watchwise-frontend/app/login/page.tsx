@@ -82,7 +82,7 @@ function LoginPageInner() {
   return (
     <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-zinc-950 text-foreground selection:bg-mint/30">
       {/* --- BACKGROUND AMBIENCE --- */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
 
       <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-600/20 blur-[120px] rounded-full opacity-40 animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-teal-500/10 blur-[120px] rounded-full opacity-30" />

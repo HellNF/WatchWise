@@ -145,10 +145,12 @@ export function Header() {
                     src={(() => {
                       if (user.avatar) {
                         const found = AVATAR_OPTIONS.find(opt => opt.id === user.avatar);
-                        return found ? found.src : "/friendly-avatar-illustration.jpg";
+                        return found ? found.src : AVATAR_OPTIONS[0].src;
                       }
-                      return "/friendly-avatar-illustration.jpg";
+                      return AVATAR_OPTIONS[0].src;
                     })()}
+                    alt={user?.username ?? "Profile"}
+                    loading="eager"
                   />
                   <AvatarFallback className="bg-secondary text-secondary-foreground">
                     {user.username ? user.username.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase() : "U"}

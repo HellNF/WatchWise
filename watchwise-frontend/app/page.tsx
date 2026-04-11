@@ -141,7 +141,7 @@ function StickyHeader() {
   const router = useRouter()
 
   React.useEffect(() => {
-    return scrollY.onChange((latest) => setScrolled(latest > 20))
+    return scrollY.on("change", (latest) => setScrolled(latest > 20))
   }, [scrollY])
 
   useEffect(() => {
@@ -184,8 +184,8 @@ function StickyHeader() {
   }, [])
 
   const avatarSrc = user?.avatar
-    ? (AVATAR_OPTIONS.find((opt) => opt.id === user.avatar)?.src ?? "/friendly-avatar-illustration.jpg")
-    : "/friendly-avatar-illustration.jpg"
+    ? (AVATAR_OPTIONS.find((opt) => opt.id === user.avatar)?.src ?? AVATAR_OPTIONS[0].src)
+    : AVATAR_OPTIONS[0].src
 
   return (
     <header
@@ -232,7 +232,7 @@ function StickyHeader() {
                 aria-label="Go to profile"
               >
                 <Avatar className="h-9 w-9 ring-2 ring-primary/20 cursor-pointer hover:ring-primary/60 transition-[box-shadow] duration-200">
-                  <AvatarImage src={avatarSrc} alt={user?.username ?? "Profile"} />
+                  <AvatarImage src={avatarSrc} alt={user?.username ?? "Profile"} loading="eager" />
                   <AvatarFallback className="bg-secondary text-secondary-foreground">
                     {user?.username ? user.username.slice(0, 2).toUpperCase() : "U"}
                   </AvatarFallback>
@@ -799,7 +799,7 @@ function FinalCTA() {
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       >
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-20 pointer-events-none" />
         <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center">

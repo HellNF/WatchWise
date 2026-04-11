@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
@@ -589,10 +590,13 @@ export function HeroRecommendation({ movie }: { movie?: HeroMovie | null }) {
               }}
             >
               <Link href={`/movie/${encodeURIComponent(activeMovie.id)}`}>
-                <img
+                <Image
                   src={poster}
                   alt={activeMovie.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 224px, (max-width: 1024px) 256px, 384px"
+                  className="object-cover"
                 />
               </Link>
             </div>

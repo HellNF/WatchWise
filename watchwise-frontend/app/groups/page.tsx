@@ -112,7 +112,7 @@ export default function GroupsPage() {
 
   return (
     <main className="relative min-h-screen bg-zinc-950 pb-28 text-foreground selection:bg-violet-500/30">
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
       <div className="pointer-events-none fixed left-0 top-0 z-0 h-[500px] w-[500px] rounded-full bg-violet-600/10 blur-[120px] opacity-40" />
       <div className="pointer-events-none fixed bottom-0 right-0 z-0 h-[500px] w-[500px] rounded-full bg-teal-500/10 blur-[120px] opacity-30" />
 
