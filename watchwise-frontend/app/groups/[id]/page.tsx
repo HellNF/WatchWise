@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -668,10 +669,12 @@ export default function GroupDetailPage() {
                     <Card className="relative overflow-hidden border-white/10 bg-zinc-900/80 backdrop-blur-xl">
                       <CardContent className="flex flex-col p-0 md:flex-row">
                         <div className="relative h-64 w-full shrink-0 md:h-auto md:w-48">
-                          <img
-                            src={recommendations.recommended.movie.posterPath || "/placeholder-movie.jpg"}
+                          <Image
+                            src={recommendations.recommended.movie.posterPath || "/placeholder.svg"}
                             alt={recommendations.recommended.movie.title}
-                            className="h-full w-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 192px"
+                            className="object-cover"
                           />
                           <div className="absolute left-3 top-3 rounded bg-amber-500 px-2 py-1 text-xs font-bold text-black shadow-lg">
                             #1 MATCH

@@ -214,9 +214,12 @@ function RightPanel({
               className="flex items-center gap-4 p-3 rounded-xl bg-card/30 backdrop-blur-sm transition-colors duration-500 hover:bg-card/50"
               style={{ borderWidth: 1, borderColor: `color-mix(in oklch, ${primaryColor} 30%, transparent)` }}
             >
-              <img
+              <Image
                 src={director.image || "/placeholder.svg"}
                 alt={director.name}
+                width={80}
+                height={80}
+                sizes="80px"
                 className="w-20 h-20 rounded-full object-cover transition-colors duration-500"
                 style={{ borderWidth: 2, borderColor: `color-mix(in oklch, ${primaryColor} 40%, transparent)` }}
               />
@@ -227,9 +230,12 @@ function RightPanel({
               className="flex items-center gap-4 p-3 rounded-xl bg-card/30 backdrop-blur-sm transition-colors duration-500"
               style={{ borderWidth: 1, borderColor: `color-mix(in oklch, ${primaryColor} 30%, transparent)` }}
             >
-              <img
+              <Image
                 src={director.image || "/placeholder.svg"}
                 alt={director.name}
+                width={80}
+                height={80}
+                sizes="80px"
                 className="w-20 h-20 rounded-full object-cover transition-colors duration-500"
                 style={{ borderWidth: 2, borderColor: `color-mix(in oklch, ${primaryColor} 40%, transparent)` }}
               />
@@ -251,9 +257,12 @@ function RightPanel({
                   href={`/person/actor/${actor.id}?name=${encodeURIComponent(actor.name)}`}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/30 backdrop-blur-sm border border-border/30 hover:bg-card/50 transition-colors"
                 >
-                  <img
+                  <Image
                     src={actor.image || "/placeholder.svg"}
                     alt={actor.name}
+                    width={80}
+                    height={80}
+                    sizes="80px"
                     className="w-20 h-20 rounded-full object-cover border-2 border-border/50"
                   />
                   <span className="text-xs text-center text-muted-foreground line-clamp-1">{actor.name}</span>
@@ -263,9 +272,12 @@ function RightPanel({
                   key={actor.name}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/30 backdrop-blur-sm border border-border/30"
                 >
-                  <img
+                  <Image
                     src={actor.image || "/placeholder.svg"}
                     alt={actor.name}
+                    width={80}
+                    height={80}
+                    sizes="80px"
                     className="w-20 h-20 rounded-full object-cover border-2 border-border/50"
                   />
                   <span className="text-xs text-center text-muted-foreground line-clamp-1">{actor.name}</span>

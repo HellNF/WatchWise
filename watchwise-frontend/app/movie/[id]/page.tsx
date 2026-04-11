@@ -424,7 +424,7 @@ export default function MovieDetailsPage() {
                                     className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/20 transition-colors"
                                   >
                                     {l.logoPath && (
-                                      <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-5 w-5 rounded-md" alt="" />
+                                      <Image src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} width={20} height={20} sizes="20px" className="h-5 w-5 rounded-md" alt="" />
                                     )}
                                     {l.providerName}
                                   </a>
@@ -449,7 +449,7 @@ export default function MovieDetailsPage() {
                                         className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-[10px] text-blue-100 hover:bg-blue-500/20 transition-colors"
                                       >
                                         {l.logoPath && (
-                                          <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-4 w-4 rounded-md" alt="" />
+                                          <Image src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} width={16} height={16} sizes="16px" className="h-4 w-4 rounded-md" alt="" />
                                         )}
                                         {l.providerName}
                                       </a>
@@ -472,7 +472,7 @@ export default function MovieDetailsPage() {
                                         className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/20 px-2 py-1 text-[10px] text-violet-100 hover:bg-violet-500/20 transition-colors"
                                       >
                                         {l.logoPath && (
-                                          <img src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} className="h-4 w-4 rounded-md" alt="" />
+                                          <Image src={`https://image.tmdb.org/t/p/w45${l.logoPath}`} width={16} height={16} sizes="16px" className="h-4 w-4 rounded-md" alt="" />
                                         )}
                                         {l.providerName}
                                       </a>
@@ -510,10 +510,12 @@ export default function MovieDetailsPage() {
                           <Link href={`/person/director/${details.directorId}?name=${encodeURIComponent(details.director)}`} className="group block h-full">
                             <div className="h-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1">
                               <div className="mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-amber-500/50 transition-colors w-24 h-24 mx-auto">
-                                <img
+                                <Image
                                   src={details.directorImage || "/placeholder.svg"}
                                   alt={details.director}
-                                  className="h-full w-full object-cover"
+                                  fill
+                                  sizes="96px"
+                                  className="object-cover"
                                 />
                               </div>
                               <div className="text-center">
@@ -531,10 +533,12 @@ export default function MovieDetailsPage() {
                           <Link href={`/person/actor/${actor.id}?name=${encodeURIComponent(actor.name)}`} className="group block h-full">
                             <div className="h-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1">
                               <div className="mb-4 aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-white/20 transition-colors w-20 h-20 mx-auto grayscale group-hover:grayscale-0">
-                                <img
+                                <Image
                                   src={actor.image || "/placeholder.svg"}
                                   alt={actor.name}
-                                  className="h-full w-full object-cover"
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover"
                                 />
                               </div>
                               <div className="text-center">
@@ -573,11 +577,18 @@ export default function MovieDetailsPage() {
                                 item.type === "backdrop" ? "basis-[85%] md:basis-[60%]" : "basis-[40%] md:basis-[25%]"
                               )}
                             >
-                              <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-900 shadow-lg group">
-                                <img
+                              <div
+                                className={cn(
+                                  "relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-lg group",
+                                  item.type === "backdrop" ? "aspect-video" : "aspect-[2/3]"
+                                )}
+                              >
+                                <Image
                                   src={item.url}
                                   alt="Gallery item"
-                                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                  fill
+                                  sizes={item.type === "backdrop" ? "(max-width: 768px) 85vw, 60vw" : "(max-width: 768px) 40vw, 25vw"}
+                                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                               </div>
                             </CarouselItem>

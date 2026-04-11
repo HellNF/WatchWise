@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { Header } from "@/components/header"
@@ -17,7 +18,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import GradientText from "@/components/ui/gradient-text"
-import PrismaticBurst from "@/components/ui/prismatic-burst"
 import { Sparkles, Check, RefreshCcw, Loader2, History, Star, ThumbsUp } from "lucide-react"
 import {
   getRecommendedMovies,
@@ -29,6 +29,10 @@ import {
   getMovieDetails,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
+
+const PrismaticBurst = dynamic(() => import("@/components/ui/prismatic-burst"), {
+  ssr: false,
+})
 
 const POSTER_BASE = "https://image.tmdb.org/t/p/w500"
 
@@ -141,7 +145,8 @@ export default function SuggestionsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const [burstQuality, setBurstQuality] = useState<"full" | "lite" | "micro" | "off">("full")
+  const [burstQuality, setBurstQuality] = useState<"full" | "lite" | "micro" | "off">("off")
+  const [isMobileLike, setIsMobileLike] = useState(false)
   const [isHeroVisible, setIsHeroVisible] = useState(true)
   const [isHeroHovered, setIsHeroHovered] = useState(false)
   
@@ -150,7 +155,7 @@ export default function SuggestionsPage() {
   const [carouselLoading, setCarouselLoading] = useState(false)
   const [sourceMovieTitle, setSourceMovieTitle] = useState<string>("")
   
-  const pageSize = 30
+  const pageSize = isMobileLike ? 12 : 18
 
   const mergeItems = (current: SuggestionCard[], next: SuggestionCard[]) => {
     const seen = new Set(current.map((item) => item.id))
@@ -187,10 +192,13 @@ export default function SuggestionsPage() {
 
   useEffect(() => {
     void loadSuggestions()
-  }, [])
+  }, [pageSize])
 
   // Load "Because you watched" data
   useEffect(() => {
+    let cancelled = false
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
     const loadCarousel = async () => {
       setCarouselLoading(true)
       try {
@@ -198,34 +206,59 @@ export default function SuggestionsPage() {
         const lastHighRatedId = pickLastHighRated(history)
         
         if (!lastHighRatedId) {
-          setCarouselItems([])
+          if (!cancelled) setCarouselItems([])
           return
         }
 
         // Fetch source movie details to show title
         try {
           const sourceDetails = await getMovieDetails(lastHighRatedId)
-          setSourceMovieTitle(sourceDetails.title)
+          if (!cancelled) setSourceMovieTitle(sourceDetails.title)
         } catch {
-          setSourceMovieTitle("your favorite")
+          if (!cancelled) setSourceMovieTitle("your favorite")
         }
 
-        const recs = await getRecommendedMovies(lastHighRatedId, 10)
-        setCarouselItems(recs.map(mapMovieListItem))
+        const recs = await getRecommendedMovies(lastHighRatedId, isMobileLike ? 6 : 10)
+        if (!cancelled) setCarouselItems(recs.map(mapMovieListItem))
       } catch {
-        setCarouselItems([])
+        if (!cancelled) setCarouselItems([])
       } finally {
-        setCarouselLoading(false)
+        if (!cancelled) setCarouselLoading(false)
       }
     }
 
-    void loadCarousel()
-  }, [])
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = (window as Window & {
+        requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number
+        cancelIdleCallback?: (id: number) => void
+      }).requestIdleCallback?.(() => {
+        void loadCarousel()
+      }, { timeout: 1500 })
+
+      return () => {
+        cancelled = true
+        if (idleId) {
+          (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId)
+        }
+      }
+    }
+
+    timeoutId = setTimeout(() => {
+      void loadCarousel()
+    }, isMobileLike ? 1000 : 250)
+
+    return () => {
+      cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [isMobileLike])
 
   useEffect(() => {
     if (typeof window === "undefined") return
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")
     const reduceData = window.matchMedia?.("(prefers-reduced-data: reduce)")
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)")
+    const narrowViewport = window.matchMedia?.("(max-width: 767px)")
     const mediaQueries = [reduceMotion, reduceData].filter(Boolean)
     const deviceMemory = (navigator as Navigator & { deviceMemory?: number })
       .deviceMemory
@@ -233,18 +266,20 @@ export default function SuggestionsPage() {
 
     const update = () => {
       const reduce = mediaQueries.some((mq) => mq?.matches)
+      const mobileLike = Boolean(coarsePointer?.matches || narrowViewport?.matches)
+      setIsMobileLike(mobileLike)
       const lowPower = (deviceMemory !== undefined && deviceMemory <= 4) || cores <= 4
       const midPower = (deviceMemory !== undefined && deviceMemory <= 8) || cores <= 6
-      if (reduce) setBurstQuality("off")
+      if (reduce || mobileLike) setBurstQuality("off")
       else if (lowPower) setBurstQuality("micro")
       else if (midPower) setBurstQuality("lite")
       else setBurstQuality("full")
     }
 
     update()
-    mediaQueries.forEach((mq) => mq?.addEventListener("change", update))
+    ;[...mediaQueries, coarsePointer, narrowViewport].forEach((mq) => mq?.addEventListener("change", update))
     return () => {
-      mediaQueries.forEach((mq) => mq?.removeEventListener("change", update))
+      ;[...mediaQueries, coarsePointer, narrowViewport].forEach((mq) => mq?.removeEventListener("change", update))
     }
   }, [])
 
@@ -439,7 +474,7 @@ export default function SuggestionsPage() {
 
           {/* HISTORY CAROUSEL SECTION */}
           {(carouselLoading || carouselItems.length > 0) && (
-            <section className="mb-16">
+            <section className="mb-16" style={{ contentVisibility: "auto", containIntrinsicSize: "520px" }}>
               {/* Feature Container */}
               <div className="relative rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-900/10 via-zinc-900/40 to-zinc-900/40 p-6 md:p-8 overflow-hidden backdrop-blur-sm">
                 {/* Decorative Glows */}
@@ -504,7 +539,7 @@ export default function SuggestionsPage() {
           )}
 
           {/* MAIN GRID */}
-          <section>
+          <section style={{ contentVisibility: "auto", containIntrinsicSize: "1200px" }}>
             <div className="flex items-center justify-between mb-6 px-2">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 bg-gradient-to-b from-violet-500 to-transparent rounded-full" />

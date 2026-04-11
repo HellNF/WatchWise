@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import React, { useState, useEffect } from "react"
 import { motion, useScroll, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -48,9 +49,15 @@ const GROUP_AVATARS = [
 ]
 
 // --- Animation Variants ---
+const smoothEase = [0.23, 1, 0.32, 1] as const
+const progressiveSectionStyle: React.CSSProperties = {
+  contentVisibility: "auto",
+  containIntrinsicSize: "900px",
+}
+
 const heroItemV = {
   hidden: { opacity: 0, transform: "translateY(20px)" },
-  visible: { opacity: 1, transform: "translateY(0px)", transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] } },
+  visible: { opacity: 1, transform: "translateY(0px)", transition: { duration: 0.5, ease: smoothEase } },
 }
 const staggerV = {
   hidden: {},
@@ -58,7 +65,7 @@ const staggerV = {
 }
 const cardItemV = {
   hidden: { opacity: 0, transform: "translateY(20px)" },
-  visible: { opacity: 1, transform: "translateY(0px)", transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } },
+  visible: { opacity: 1, transform: "translateY(0px)", transition: { duration: 0.4, ease: smoothEase } },
 }
 
 // --- Static Data ---
@@ -275,7 +282,7 @@ function StickyHeader() {
             initial={{ opacity: 0, transform: "translateY(-8px)" }}
             animate={{ opacity: 1, transform: "translateY(0px)" }}
             exit={{ opacity: 0, transform: "translateY(-8px)" }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.18, ease: smoothEase }}
             className="md:hidden bg-background border-b border-border/40"
           >
             <div className="px-6 py-4 flex flex-col gap-4">
@@ -470,7 +477,7 @@ function Hero() {
 
 function BentoFeatures() {
   return (
-    <section id="features" className="relative py-20 sm:py-24">
+    <section id="features" className="relative py-20 sm:py-24" style={progressiveSectionStyle}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center mb-16 max-w-2xl mx-auto">
           <SectionBadge>Features</SectionBadge>
@@ -504,10 +511,12 @@ function BentoFeatures() {
             <div className="absolute -right-10 -bottom-20 opacity-50 group-hover:opacity-80 group-hover:-translate-y-2 transition-all duration-700">
               <div className="grid grid-cols-2 gap-2 transform -rotate-12">
                 {[...trendingMovies, ...topRatedMovies].slice(0, 4).map((m) => (
-                  <img
+                  <Image
                     key={m.id}
                     src={m.poster}
                     alt={m.title}
+                    width={128}
+                    height={192}
                     className="w-32 h-48 rounded-lg object-cover shadow-lg opacity-80"
                   />
                 ))}
@@ -571,7 +580,7 @@ function HowItWorks() {
   ]
 
   return (
-    <section className="border-y border-white/5 bg-gradient-to-b from-background via-white/[0.02] to-background py-20 sm:py-24">
+    <section className="border-y border-white/5 bg-gradient-to-b from-background via-white/[0.02] to-background py-20 sm:py-24" style={progressiveSectionStyle}>
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="text-center mb-16">
           <SectionBadge>How it works</SectionBadge>
@@ -619,7 +628,7 @@ function HowItWorks() {
 
 function MovieNight() {
   return (
-    <section id="movie-night" className="relative overflow-hidden py-24 sm:py-32">
+    <section id="movie-night" className="relative overflow-hidden py-24 sm:py-32" style={progressiveSectionStyle}>
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-12 px-4 sm:px-6 md:flex-row md:gap-16">
         <div className="flex-1 space-y-8 z-10">
           <SectionBadge>Movie night mode</SectionBadge>
@@ -674,9 +683,11 @@ function MovieNight() {
 
             {/* Consensus result */}
             <div className="bg-background/50 rounded-xl p-4 border border-white/5 flex gap-4">
-              <img
+              <Image
                 src={trendingMovies[2].poster}
                 alt={trendingMovies[2].title}
+                width={80}
+                height={120}
                 className="w-20 rounded-lg shadow-sm object-cover shrink-0"
               />
               <div className="flex-1 min-w-0">
@@ -710,11 +721,38 @@ function MovieNight() {
 
 function ShowcaseRow({ title, category }: { title: string; category: MoviesCategory }) {
   const [movies, setMovies] = useState<MovieListItem[]>([])
+  const [shouldLoad, setShouldLoad] = useState(false)
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
+    const node = containerRef.current
+    if (!node || shouldLoad) return
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "300px" }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [shouldLoad])
+
+  useEffect(() => {
+    if (!shouldLoad) return
     getMoviesByCategory(category, { limit: 10 }).then(setMovies)
-  }, [category])
+  }, [category, shouldLoad])
+
   return (
-    <div className="mb-16">
+    <div className="mb-16" ref={containerRef} style={progressiveSectionStyle}>
       <div className="mb-6 flex items-center justify-between gap-4 px-1 md:px-0">
         <h3 className="text-2xl font-bold">{title}</h3>
         <Link
@@ -725,6 +763,20 @@ function ShowcaseRow({ title, category }: { title: string; category: MoviesCateg
         </Link>
       </div>
       <div className="relative">
+        {!shouldLoad ? (
+          <div className="flex gap-4 overflow-hidden px-6 md:px-0">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`${title}-placeholder-${index}`}
+                className="basis-[160px] md:basis-[200px] lg:basis-[240px] shrink-0"
+              >
+                <div className="aspect-[2/3] rounded-xl bg-white/5 animate-pulse" />
+                <div className="mt-3 h-4 w-3/4 rounded bg-white/5 animate-pulse" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-white/5 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : (
         <Carousel opts={{ align: "start", loop: false }} className="w-full">
           <CarouselContent className="-ml-4 px-6 md:px-0">
             {movies.map((movie) => (
@@ -745,6 +797,7 @@ function ShowcaseRow({ title, category }: { title: string; category: MoviesCateg
           <CarouselPrevious className="hidden md:flex -left-4" />
           <CarouselNext className="hidden md:flex -right-4" />
         </Carousel>
+        )}
         {/* Mobile right-edge fade — pointer-events-none preserves swipe */}
         <div className="md:hidden absolute inset-y-0 right-0 w-16 bg-gradient-to-r from-transparent to-background pointer-events-none z-10" />
       </div>
@@ -754,7 +807,7 @@ function ShowcaseRow({ title, category }: { title: string; category: MoviesCateg
 
 function Showcase() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6" style={progressiveSectionStyle}>
       <ShowcaseRow title="Trending now" category="trending" />
       <ShowcaseRow title="All-time favorites" category="top_rated" />
     </section>
@@ -763,7 +816,7 @@ function Showcase() {
 
 function FAQ() {
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-24">
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6 sm:py-24" style={progressiveSectionStyle}>
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold mb-4">Frequently asked questions</h2>
         <p className="text-muted-foreground">Everything you need to know about WatchWise.</p>
@@ -791,13 +844,13 @@ function FAQ() {
 function FinalCTA() {
   const router = useRouter()
   return (
-    <section className="px-4 py-20 sm:px-6 sm:py-24">
+    <section className="px-4 py-20 sm:px-6 sm:py-24" style={progressiveSectionStyle}>
       <motion.div
         className="relative mx-auto overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-zinc-900 to-black p-8 text-center md:rounded-[3rem] md:p-24"
         initial={{ opacity: 0, transform: "translateY(32px)" }}
         whileInView={{ opacity: 1, transform: "translateY(0px)" }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+        transition={{ duration: 0.5, ease: smoothEase }}
       >
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-20 pointer-events-none" />
         <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />

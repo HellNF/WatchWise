@@ -24,7 +24,6 @@ import {
 // --- HELPERS ---
 
 const HERO_ITEM_LIMIT = 6
-const HERO_ENRICH_LIMIT = 3
 
 const normalizeMovieId = (value: string) =>
   value.includes(":") ? value.split(":").pop() ?? value : value
@@ -150,17 +149,6 @@ export default async function HomePage() {
     heroBase.map(async (item, index) => {
       let overview: string | undefined
       let backdrop: string | undefined
-
-      if (index >= HERO_ENRICH_LIMIT) {
-        return {
-          id: normalizeMovieId(item.movieId),
-          title: item.title,
-          poster: item.posterPath,
-          year: item.year,
-          rating: Number.isFinite(item.voteAverage) ? item.voteAverage : undefined,
-          badge: index === 0 ? "Featured" : heroSource.badge,
-        }
-      }
 
       try {
         const [detailsResult, imagesResult] = await Promise.allSettled([

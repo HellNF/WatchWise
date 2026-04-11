@@ -11,7 +11,6 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-  type CarouselApi,
 } from "@/components/ui/carousel"
 import { MovieCard } from "@/components/movie-card"
 import { MovieQuickActions } from "@/components/movie-quick-actions"
@@ -146,25 +145,22 @@ export function HomePageClient({
   categories: HomeCategory[]
 }) {
   const items = useMemo(() => heroItems.filter(Boolean), [heroItems])
-  const [api, setApi] = useState<CarouselApi | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
-    if (!api) return
-    const onSelect = () => setActiveIndex(api.selectedScrollSnap())
-    onSelect()
-    api.on("select", onSelect)
-    return () => { api.off("select", onSelect) }
-  }, [api])
+    if (!items.length) return
+    if (activeIndex >= items.length) {
+      setActiveIndex(0)
+    }
+  }, [activeIndex, items.length])
 
-  // Auto-play hero
   useEffect(() => {
-    if (!api) return
+    if (items.length <= 1) return
     const interval = setInterval(() => {
-      api.scrollNext()
+      setActiveIndex((current) => (current + 1) % items.length)
     }, 8000)
     return () => clearInterval(interval)
-  }, [api])
+  }, [items.length])
 
   const activeHero = items[activeIndex] ?? items[0]
   const heroBackdrop = activeHero?.backdrop || activeHero?.poster || "/placeholder.svg"
@@ -178,122 +174,85 @@ export function HomePageClient({
       <div className="fixed bottom-0 right-0 w-[600px] h-[600px] bg-amber-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none z-0" />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden group">
-        
-        {/* Background Image with Fade */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-zinc-950 transition-opacity duration-700" /> 
+      <section className="relative min-h-[70vh] overflow-hidden">
+        <div className="absolute inset-0">
           <Image
-            key={activeHero?.id} // Key forces fade animation on change
+            key={activeHero?.id}
             src={heroBackdrop}
             alt={activeHero?.title ?? "Hero"}
             fill
             priority
             sizes="100vw"
-            className="object-cover object-top animate-in fade-in zoom-in-105 duration-1000"
+            className="object-cover object-top scale-105"
           />
-          {/* Complex Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-950/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-background/5" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/20 to-transparent" />
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 h-full flex flex-col justify-end pb-32 px-4 md:px-8 lg:px-12 max-w-[1400px] mx-auto">
-          <div className="max-w-3xl space-y-6 animate-in slide-in-from-bottom-10 fade-in duration-700">
-            
-            {/* Badges */}
+        <div className="relative z-10 px-4 py-16 md:px-6 lg:px-8 lg:py-24 max-w-10/12 mx-auto">
+          <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
-              <Badge className="gap-1.5 py-1.5 px-3 bg-violet-600 hover:bg-violet-600 text-white border-0 shadow-[0_0_15px_rgba(124,58,237,0.4)]">
-                <Sparkles className="h-3.5 w-3.5 fill-white" />
+              <Badge className="gap-1 bg-primary/90 text-primary-foreground">
+                <Sparkles className="h-3 w-3" />
                 {activeHero?.badge ?? "Featured"}
               </Badge>
-              <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-white/20 bg-black/20 backdrop-blur-md text-zinc-200">
-                <Film className="h-3.5 w-3.5" />
-                {activeHero?.year ? `Released ${activeHero.year}` : "Trending"}
+              <Badge variant="outline" className="gap-1">
+                <Film className="h-3 w-3" />
+                Streaming picks
               </Badge>
             </div>
 
-            {/* Title & Overview */}
             <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] drop-shadow-2xl">
-                {activeHero?.title ?? "Discover Movies"}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
+                {activeHero?.title ?? "Discover your next movie"}
               </h1>
-              
-              <div className="flex items-center gap-4 text-sm font-medium text-zinc-300">
-                {typeof activeHero?.rating === "number" && (
-                  <span className="flex items-center gap-1.5 text-amber-400">
-                    <Star className="h-4 w-4 fill-amber-400" /> 
-                    {activeHero.rating.toFixed(1)} Rating
-                  </span>
-                )}
-                {typeof activeHero?.year === "number" && (
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4 text-zinc-500" />
-                    {activeHero.year}
-                  </span>
-                )}
-              </div>
-
-              <p className="text-lg text-zinc-300/90 line-clamp-3 max-w-2xl leading-relaxed">
-                {activeHero?.overview ?? "A dynamic selection tailored for you."}
+              <p className="text-base md:text-lg text-muted-foreground line-clamp-3">
+                {activeHero?.overview ??
+                  "A dynamic selection of movies tailored for you, with fresh discoveries every day."}
               </p>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                {typeof activeHero?.year === "number" ? (
+                  <span>{activeHero.year}</span>
+                ) : null}
+                {typeof activeHero?.rating === "number" ? (
+                  <span>· {activeHero.rating.toFixed(1)} / 10</span>
+                ) : null}
+              </div>
             </div>
+          </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4 pt-2">
-              {activeHero?.id && (
-                <Button asChild size="lg" className="h-14 px-8 rounded-full bg-white text-black hover:bg-zinc-200 font-bold text-base shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                  <Link href={`/movie/${encodeURIComponent(activeHero.id)}`}>
-                    <Play className="mr-2 h-5 w-5 fill-black" /> Watch Details
-                  </Link>
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap gap-3">
+              {activeHero?.id ? (
+                <Button asChild size="lg">
+                  <Link href={`/movie/${encodeURIComponent(activeHero.id)}`}>Details</Link>
                 </Button>
-              )}
-              <Button variant="outline" size="lg" asChild className="h-14 px-8 rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-white backdrop-blur-md">
-                <Link href="/suggestions">
-                  <Sparkles className="mr-2 h-5 w-5" /> Recommended
-                </Link>
+              ) : null}
+              <Button variant="outline" size="lg" asChild>
+                <Link href="/suggestions">Suggested for You</Link>
               </Button>
             </div>
+
+            {items.length > 1 ? (
+              <div className="flex items-center gap-2 self-start md:self-auto md:ml-auto">
+                {items.map((movie, index) => (
+                  <button
+                    key={movie.id}
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    aria-label={`Go to movie ${index + 1}: ${movie.title}`}
+                    className={cn(
+                      "h-2.5 rounded-full transition-all duration-300",
+                      index === activeIndex
+                        ? "w-8 bg-white"
+                        : "w-2.5 bg-white/40 hover:bg-white/70"
+                    )}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
-
-        {/* Floating Carousel Navigation (Glass Dock) */}
-        {items.length > 0 && (
-          <div className="absolute bottom-8 right-4 md:right-12 z-20 max-w-[50%] lg:max-w-[40%] hidden md:block">
-            <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-2">
-              <Carousel
-                opts={{ align: "start", loop: true }}
-                setApi={setApi}
-                className="w-full"
-              >
-                <CarouselContent className="-ml-2">
-                  {items.map((movie, index) => (
-                    <CarouselItem key={movie.id} className="basis-1/3 lg:basis-1/4 pl-2">
-                      <button
-                        onClick={() => api?.scrollTo(index)}
-                        className={cn(
-                          "relative aspect-video w-full overflow-hidden rounded-lg border transition-all duration-300",
-                          index === activeIndex 
-                            ? "border-violet-500 ring-1 ring-violet-500/50 opacity-100" 
-                            : "border-transparent opacity-50 hover:opacity-80"
-                        )}
-                      >
-                        <Image
-                          src={movie.backdrop || movie.poster || "/placeholder.svg"}
-                          alt={movie.title}
-                          fill
-                          sizes="(max-width: 1024px) 20vw, 12vw"
-                          className="object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/20" />
-                      </button>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* --- MOVIE NIGHT BANNER --- */}

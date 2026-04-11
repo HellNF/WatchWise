@@ -6,6 +6,7 @@ import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -71,6 +72,10 @@ const AVATAR_OPTIONS = [
 ]
 
 const TMDB_PROFILE_BASE = "https://image.tmdb.org/t/p/w185"
+const deferredPanelStyle = {
+  contentVisibility: "auto" as const,
+  containIntrinsicSize: "720px",
+}
 
 type PersonCard = {
   id?: number
@@ -132,9 +137,12 @@ function SuggestionDropdown({
               className="flex items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-white/10 transition-colors group"
               onClick={() => onPick(s.name)}
             >
-              <img
+              <Image
                 src={s.image || "/placeholder.svg"}
                 alt={s.name}
+                width={32}
+                height={32}
+                sizes="32px"
                 className="h-8 w-8 rounded-full object-cover border border-white/10"
               />
               <div className="min-w-0">
@@ -167,9 +175,12 @@ function PersonGrid({
           key={p.name}
           className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-2 pr-8 shadow-sm transition hover:bg-white/[0.05] hover:border-white/10"
         >
-          <img
+          <Image
             src={p.image || "/placeholder.svg"}
             alt={p.name}
+            width={40}
+            height={40}
+            sizes="40px"
             className="h-10 w-10 rounded-full object-cover border border-white/10"
           />
           <span className="text-xs font-medium text-zinc-300 line-clamp-2 leading-tight">
@@ -594,7 +605,7 @@ export default function ProfilePage() {
             </Card>
 
             {/* Lists Card */}
-            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl" style={deferredPanelStyle}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <BarChart3 className="h-5 w-5 text-zinc-400" /> Your Lists
@@ -662,7 +673,7 @@ export default function ProfilePage() {
           {/* RIGHT COLUMN: Preferences */}
           <div className="space-y-6">
             
-            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl" style={deferredPanelStyle}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <SlidersHorizontal className="h-5 w-5 text-zinc-400" /> Taste Profile
@@ -734,7 +745,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl">
+            <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl" style={deferredPanelStyle}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Users className="h-5 w-5 text-zinc-400" /> People
@@ -867,7 +878,13 @@ export default function ProfilePage() {
                       : "border-transparent hover:border-white/20"
                   )}
                 >
-                  <img src={option.src} alt={option.id} className="w-full h-full object-cover" />
+                  <Image
+                    src={option.src}
+                    alt={option.id}
+                    fill
+                    sizes="(max-width: 640px) 28vw, 112px"
+                    className="object-cover"
+                  />
                   {savingAvatar && profile?.avatar === option.id && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-white"/>

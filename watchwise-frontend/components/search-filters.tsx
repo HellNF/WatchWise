@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -203,9 +204,12 @@ export function SearchFilters({ genres, values, onChange, onReset, resultCount }
                   onClick={() => { set({ actorId: p.id, actorName: p.name }); setActorInput(p.name); setActorSuggestions([]) }}
                   className="flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-white/5 text-sm"
                 >
-                  <img
+                  <Image
                     src={p.profile_path ? `${TMDB_PROFILE_BASE}${p.profile_path}` : "/placeholder.svg"}
                     alt={p.name}
+                    width={32}
+                    height={32}
+                    sizes="32px"
                     className="h-8 w-8 rounded-full object-cover bg-zinc-800 flex-shrink-0"
                   />
                   <div>
@@ -247,9 +251,12 @@ export function SearchFilters({ genres, values, onChange, onReset, resultCount }
                   onClick={() => { set({ directorId: p.id, directorName: p.name }); setDirectorInput(p.name); setDirectorSuggestions([]) }}
                   className="flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-white/5 text-sm"
                 >
-                  <img
+                  <Image
                     src={p.profile_path ? `${TMDB_PROFILE_BASE}${p.profile_path}` : "/placeholder.svg"}
                     alt={p.name}
+                    width={32}
+                    height={32}
+                    sizes="32px"
                     className="h-8 w-8 rounded-full object-cover bg-zinc-800 flex-shrink-0"
                   />
                   <div>

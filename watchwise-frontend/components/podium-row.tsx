@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import type { CarouselApi } from "@/components/ui/carousel"
 import {
   Carousel,
@@ -174,11 +175,12 @@ export function PodiumRow({
                         {/* Netflix-like overlay */}
                         <div className="absolute inset-0 z-10 bg-linear-to-t from-black/30 via-black/0 to-black/0" />
 
-                        <img
+                        <Image
                           src={item.poster || "/placeholder.svg"}
                           alt={item.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 44vw, (max-width: 1280px) 24vw, 220px"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
 
                         <div className="absolute bottom-2 right-2 z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">

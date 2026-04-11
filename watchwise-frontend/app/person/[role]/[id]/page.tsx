@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -39,6 +40,10 @@ import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1]
+const deferredSectionStyle = {
+  contentVisibility: "auto" as const,
+  containIntrinsicSize: "900px",
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
@@ -249,7 +254,13 @@ function ImmersiveLightbox({
                   }`}
                   aria-label={`Open image ${i + 1}`}
                 >
-                  <img src={item.thumbSrc ?? item.imageSrc} alt="" className="h-full w-full object-cover" />
+                  <Image
+                    src={item.thumbSrc ?? item.imageSrc}
+                    alt=""
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -265,7 +276,13 @@ function TvShowCard({ item }: { item: PersonCreditItem }) {
     <div className="group relative flex cursor-pointer select-none flex-col gap-2 text-left transition-transform hover:-translate-y-1">
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-zinc-800 shadow-md ring-1 ring-white/10 transition-all group-hover:ring-white/30 group-hover:shadow-violet-500/20">
         {item.posterPath ? (
-          <img src={item.posterPath} alt={item.title} className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-90" />
+          <Image
+            src={item.posterPath}
+            alt={item.title}
+            fill
+            sizes="(max-width: 640px) 42vw, (max-width: 1024px) 24vw, 200px"
+            className="object-cover transition-opacity duration-300 group-hover:opacity-90"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-600">
             <Tv className="h-8 w-8" />
@@ -306,10 +323,12 @@ function IconicMovieCard({
     >
       <div className="relative flex h-full w-full cursor-pointer select-none flex-col overflow-hidden rounded-[1.5rem] bg-zinc-900 text-left shadow-lg ring-1 ring-white/10 transition-all hover:ring-amber-500/50 hover:shadow-[0_0_25px_rgba(229,177,17,0.25)]">
         <Link href={href} className="absolute inset-0 z-10" aria-label={`Open ${movie.title} details`} />
-        <img
+        <Image
           src={movie.posterPath || ""}
           alt={movie.title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          fill
+          sizes={isFeatured ? "(max-width: 640px) 92vw, (max-width: 1024px) 48vw, 420px" : "(max-width: 640px) 44vw, (max-width: 1024px) 24vw, 220px"}
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#07090E] via-[#07090E]/30 to-transparent opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -432,7 +451,9 @@ export default function PersonMoviesPage() {
   }
 
   const heroImage = details?.profilePath ?? details?.images[0]?.filePath
-  const knownFor = sortCredits(details?.movieCredits ?? [], "popularity").slice(0, 5) 
+  const knownFor = sortCredits(details?.movieCredits ?? [], "popularity")
+    .filter((item) => Boolean(item.posterPath))
+    .slice(0, 5)
   const displayedCredits = currentCredits.slice(0, visibleCount)
   const personGalleryItems: LightboxItem[] = (details?.images ?? []).map((image, index) => ({
     imageSrc: image.filePath,
@@ -514,12 +535,17 @@ export default function PersonMoviesPage() {
               custom={0}
             >
               {heroImage && (
-                <img
-                  src={heroImage}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-3xl opacity-30 mix-blend-screen"
-                />
+                <div className="pointer-events-none absolute inset-0 hidden lg:block">
+                  <Image
+                    src={heroImage}
+                    alt=""
+                    aria-hidden
+                    fill
+                    priority
+                    sizes="100vw"
+                    className="scale-110 object-cover blur-3xl opacity-30 mix-blend-screen"
+                  />
+                </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-r from-[#07090E] via-[#07090E]/85 to-transparent lg:to-[#07090E]/30" />
 
@@ -604,7 +630,14 @@ export default function PersonMoviesPage() {
                     >
                       <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-t-full rounded-b-2xl border border-violet-500/20 bg-violet-500/5 backdrop-blur-xl" />
                       <div className="absolute inset-0 bg-violet-600/30 blur-[20px]" />
-                      <img src={heroImage} alt={details.name} className="relative h-full w-full rounded-t-full rounded-b-2xl object-cover object-top shadow-xl ring-1 ring-white/20 transition-transform duration-500 hover:scale-[1.03]" />
+                      <Image
+                        src={heroImage}
+                        alt={details.name}
+                        fill
+                        priority
+                        sizes="96px"
+                        className="relative rounded-t-full rounded-b-2xl object-cover object-top shadow-xl ring-1 ring-white/20 transition-transform duration-500 hover:scale-[1.03]"
+                      />
                       <div className="absolute inset-0 rounded-t-full rounded-b-2xl bg-black/0 transition-colors duration-300 hover:bg-black/10" />
                     </button>
                   )}
@@ -636,10 +669,13 @@ export default function PersonMoviesPage() {
                   >
                     <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-t-full rounded-b-[3rem] border border-violet-500/20 bg-violet-500/5 backdrop-blur-xl" />
                     <div className="absolute inset-0 bg-violet-600/20 blur-[50px]" />
-                    <img
+                    <Image
                       src={heroImage}
                       alt={details.name}
-                      className="relative h-full w-full rounded-t-full rounded-b-[3rem] object-cover shadow-2xl ring-1 ring-white/20 transition-transform duration-500 hover:scale-[1.02]"
+                      fill
+                      priority
+                      sizes="(max-width: 1280px) 280px, 320px"
+                      className="relative rounded-t-full rounded-b-[3rem] object-cover shadow-2xl ring-1 ring-white/20 transition-transform duration-500 hover:scale-[1.02]"
                     />
                     <div className="absolute inset-0 rounded-t-full rounded-b-[3rem] bg-black/0 transition-colors duration-300 hover:bg-black/10" />
                   </button>
@@ -654,6 +690,7 @@ export default function PersonMoviesPage() {
               initial="hidden"
               animate="show"
               custom={0.1}
+              style={deferredSectionStyle}
             >
               <div className="space-y-8">
                 {/* BIOGRAPHY */}
@@ -687,7 +724,7 @@ export default function PersonMoviesPage() {
 
                 {/* KNOWN FOR GRID - Bento Box Asimmetrico allineato con la sidebar */}
                 {knownFor.length > 0 && (
-                  <section>
+                  <section style={deferredSectionStyle}>
                     <div className="mb-4 flex items-center justify-between">
                       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Curated Showcase</h2>
                       <p className="text-xs text-zinc-500">Tap a poster to open the film details</p>
@@ -715,7 +752,7 @@ export default function PersonMoviesPage() {
               <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
                 {/* GALLERY THUMBNAILS */}
                 {details.images.length > 0 && (
-                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6">
+                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6" style={deferredSectionStyle}>
                     <div className="mb-5 flex items-end justify-between">
                       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Gallery</h2>
                       <button onClick={() => setPersonImageLightboxIndex(0)} className="text-xs font-medium text-violet-400 hover:text-violet-300">
@@ -731,7 +768,13 @@ export default function PersonMoviesPage() {
                             index === 0 ? "col-span-2 row-span-2" : ""
                           }`}
                         >
-                          <img src={image.filePath} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                          <Image
+                            src={image.filePath}
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 28vw, 120px"
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
                           <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity group-hover:opacity-100" />
                         </button>
                       ))}
@@ -741,7 +784,7 @@ export default function PersonMoviesPage() {
 
                 {/* FACTS */}
                 {profileFacts.length > 0 && (
-                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6">
+                  <section className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6" style={deferredSectionStyle}>
                     <h2 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">At a glance</h2>
                     <div className="space-y-4">
                       {profileFacts.map((fact) => (
@@ -781,6 +824,7 @@ export default function PersonMoviesPage() {
               initial="hidden"
               animate="show"
               custom={0.2}
+              style={deferredSectionStyle}
             >
               <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
